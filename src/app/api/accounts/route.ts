@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       icon: body.icon || "wallet",
       isArchived: false,
       isLinked: false,
+      ...(body.plaidItemId && { plaidItemId: String(body.plaidItemId) }),
     },
   });
   return NextResponse.json(account, { status: 201 });

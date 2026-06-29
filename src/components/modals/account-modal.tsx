@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { ACCOUNT_COLORS, ACCOUNT_TYPES } from "@/lib/constants";
+import { InstitutionFields, type InstitutionSelection } from "@/components/institution-fields";
 import { useRouter } from "next/navigation";
 
 export interface AccountRecord {
@@ -17,6 +18,7 @@ export interface AccountRecord {
   icon: string;
   isArchived: boolean;
   isLinked: boolean;
+  plaidItemId?: string | null;
 }
 
 export function AccountModal({
@@ -33,10 +35,14 @@ export function AccountModal({
   const [form, setForm] = useState({
     name: "",
     type: "CHECKING",
-    institution: "",
     balance: "0",
     color: ACCOUNT_COLORS[0],
     isArchived: false,
+  });
+  const [institutionSelection, setInstitutionSelection] = useState<InstitutionSelection>({
+    institution: "",
+    plaidItemId: null,
+    syncedAccountId: null,
   });
 
   useEffect(() => {
@@ -45,19 +51,27 @@ export function AccountModal({
       setForm({
         name: account.name,
         type: account.type,
-        institution: account.institution ?? "",
         balance: String(account.balance),
         color: account.color,
         isArchived: account.isArchived,
+      });
+      setInstitutionSelection({
+        institution: account.institution ?? "",
+        plaidItemId: account.plaidItemId ?? null,
+        syncedAccountId: null,
       });
     } else {
       setForm({
         name: "",
         type: "CHECKING",
-        institution: "",
         balance: "0",
         color: ACCOUNT_COLORS[0],
         isArchived: false,
+      });
+      setInstitutionSelection({
+        institution: "",
+        plaidItemId: null,
+        syncedAccountId: null,
       });
     }
   }, [isOpen, account]);
@@ -69,7 +83,11 @@ export function AccountModal({
       await fetch(account ? `/api/accounts/${account.id}` : "/api/accounts", {
         method: account ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          institution: institutionSelection.institution || null,
+          plaidItemId: institutionSelection.plaidItemId,
+        }),
       });
       router.refresh();
       onClose();
@@ -98,6 +116,26 @@ export function AccountModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={account ? "Edit Account" : "Add Account"}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {account?.isLinked ? (
+          <Input
+            label="Institution"
+            value={account.institution ?? ""}
+            disabled
+          />
+        ) : (
+          <InstitutionFields
+            value={institutionSelection}
+            onChange={setInstitutionSelection}
+            onSyncedAccountPick={(syncedAccount) => {
+              setForm((current) => ({
+                ...current,
+                name: syncedAccount.name,
+                type: syncedAccount.type,
+                balance: String(syncedAccount.balance),
+              }));
+            }}
+          />
+        )}
         <Input
           label="Account Name"
           value={form.name}
@@ -109,12 +147,7 @@ export function AccountModal({
           value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value })}
           options={ACCOUNT_TYPES.map((t) => ({ value: t.value, label: t.label }))}
-        />
-        <Input
-          label="Institution"
-          value={form.institution}
-          onChange={(e) => setForm({ ...form, institution: e.target.value })}
-          placeholder="e.g. Chase"
+          disabled={account?.isLinked}
         />
         <Input
           label="Current Balance"
@@ -122,6 +155,7 @@ export function AccountModal({
           step="0.01"
           value={form.balance}
           onChange={(e) => setForm({ ...form, balance: e.target.value })}
+          disabled={account?.isLinked}
         />
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">Color</label>

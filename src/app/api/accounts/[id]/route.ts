@@ -34,6 +34,9 @@ export async function PATCH(
       ...(body.name !== undefined && { name: body.name }),
       ...(body.type !== undefined && { type: body.type }),
       ...(body.institution !== undefined && { institution: body.institution }),
+      ...(body.plaidItemId !== undefined && {
+        plaidItemId: body.plaidItemId ? String(body.plaidItemId) : null,
+      }),
       ...(body.balance !== undefined && { balance: parseFloat(body.balance) }),
       ...(body.color !== undefined && { color: body.color }),
       ...(body.icon !== undefined && { icon: body.icon }),

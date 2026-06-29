@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { ACCOUNT_COLORS, ACCOUNT_TYPES } from "@/lib/constants";
+import { InstitutionFields, type InstitutionSelection } from "@/components/institution-fields";
 import { useRouter } from "next/navigation";
+
+const defaultInstitution: InstitutionSelection = {
+  institution: "",
+  plaidItemId: null,
+  syncedAccountId: null,
+};
 
 export function AddAccountModal({
   isOpen,
@@ -19,10 +26,16 @@ export function AddAccountModal({
   const [form, setForm] = useState({
     name: "",
     type: "CHECKING",
-    institution: "",
     balance: "0",
     color: ACCOUNT_COLORS[0],
   });
+  const [institutionSelection, setInstitutionSelection] =
+    useState<InstitutionSelection>(defaultInstitution);
+
+  const resetForm = () => {
+    setForm({ name: "", type: "CHECKING", balance: "0", color: ACCOUNT_COLORS[0] });
+    setInstitutionSelection(defaultInstitution);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +44,15 @@ export function AddAccountModal({
       await fetch("/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          institution: institutionSelection.institution || null,
+          plaidItemId: institutionSelection.plaidItemId,
+        }),
       });
       router.refresh();
       onClose();
-      setForm({ name: "", type: "CHECKING", institution: "", balance: "0", color: ACCOUNT_COLORS[0] });
+      resetForm();
     } finally {
       setLoading(false);
     }
@@ -44,6 +61,18 @@ export function AddAccountModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add Account">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <InstitutionFields
+          value={institutionSelection}
+          onChange={setInstitutionSelection}
+          onSyncedAccountPick={(account) => {
+            setForm((current) => ({
+              ...current,
+              name: account.name,
+              type: account.type,
+              balance: String(account.balance),
+            }));
+          }}
+        />
         <Input
           label="Account Name"
           value={form.name}
@@ -56,12 +85,6 @@ export function AddAccountModal({
           value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value })}
           options={ACCOUNT_TYPES.map((t) => ({ value: t.value, label: t.label }))}
-        />
-        <Input
-          label="Institution"
-          value={form.institution}
-          onChange={(e) => setForm({ ...form, institution: e.target.value })}
-          placeholder="e.g. Chase"
         />
         <Input
           label="Current Balance"
