@@ -35,16 +35,23 @@ env:
       - BUILD
       - RUNTIME
 
-  # Plaid — use your existing Firebase secrets if already configured
-  - variable: PLAID_CLIENT_ID
-    secret: PLAID_CLIENT_ID
-    availability:
-      - RUNTIME
-
-  - variable: PLAID_SECRET
-    secret: PLAID_SECRET
-    availability:
-      - RUNTIME
+  # Plaid (optional) — bank linking only works after secrets are created.
+  # Deploy fails if you reference secrets that don't exist yet, so these are
+  # commented out by default. When ready, uncomment and run:
+  #   firebase use money-command-3ee1b
+  #   firebase apphosting:secrets:set PLAID_CLIENT_ID
+  #   firebase apphosting:secrets:set PLAID_SECRET
+  #   firebase apphosting:secrets:grantaccess PLAID_CLIENT_ID PLAID_SECRET --backend money-command
+  #
+  # - variable: PLAID_CLIENT_ID
+  #   secret: PLAID_CLIENT_ID
+  #   availability:
+  #     - RUNTIME
+  #
+  # - variable: PLAID_SECRET
+  #   secret: PLAID_SECRET
+  #   availability:
+  #     - RUNTIME
 
   - variable: PLAID_ENV
     value: sandbox
