@@ -38,11 +38,13 @@ env:
   - variable: PLAID_CLIENT_ID
     secret: PLAID_CLIENT_ID
     availability:
+      - BUILD
       - RUNTIME
 
   - variable: PLAID_SECRET
     secret: PLAID_SECRET
     availability:
+      - BUILD
       - RUNTIME
 
   - variable: PLAID_ENV
