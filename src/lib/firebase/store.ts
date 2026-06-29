@@ -240,6 +240,22 @@ async function attachIncludes(
     result.children = await findMany(COLLECTIONS.categories, { where: { parentId: item.id } });
   }
 
+  if (
+    (collection === COLLECTIONS.paySchedules || collection === COLLECTIONS.scheduledExpenses) &&
+    include
+  ) {
+    if (include.category) {
+      result.category = item.categoryId
+        ? await findUnique(COLLECTIONS.categories, { where: { id: item.categoryId } })
+        : null;
+    }
+    if (include.account) {
+      result.account = item.accountId
+        ? await findUnique(COLLECTIONS.accounts, { where: { id: item.accountId } })
+        : null;
+    }
+  }
+
   return result;
 }
 
@@ -271,5 +287,7 @@ export const db = {
   envelope: makeModel(COLLECTIONS.envelopes),
   envelopeTransfer: makeModel(COLLECTIONS.envelopeTransfers),
   plaidItem: makeModel(COLLECTIONS.plaidItems),
+  paySchedule: makeModel(COLLECTIONS.paySchedules),
+  scheduledExpense: makeModel(COLLECTIONS.scheduledExpenses),
   $transaction: runTransaction,
 };

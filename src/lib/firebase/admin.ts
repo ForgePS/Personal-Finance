@@ -57,6 +57,8 @@ export const COLLECTIONS = {
   envelopes: "envelopes",
   envelopeTransfers: "envelopeTransfers",
   plaidItems: "plaidItems",
+  paySchedules: "paySchedules",
+  scheduledExpenses: "scheduledExpenses",
 } as const;
 
 export function toDate(value: unknown): Date {
