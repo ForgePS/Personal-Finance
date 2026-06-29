@@ -35,7 +35,16 @@ env:
       - BUILD
       - RUNTIME
 
-  # Plaid: Settings → Bank Linking in the app (Firestore). No Secret Manager needed.
+  # Plaid credentials from Secret Manager (pinned to version 1; v2 was destroyed)
+  - variable: PLAID_CLIENT_ID
+    secret: projects/611170516796/secrets/PLAID_CLIENT_ID/versions/1
+    availability:
+      - RUNTIME
+
+  - variable: PLAID_SECRET
+    secret: projects/611170516796/secrets/PLAID_SECRET/versions/1
+    availability:
+      - RUNTIME
 
   - variable: PLAID_ENV
     value: production
