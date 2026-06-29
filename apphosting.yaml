@@ -1,4 +1,5 @@
-# Firebase App Hosting configuration for Money Command
+# Firebase App Hosting — uses your existing Firebase project APIs
+# Project: money-command-3ee1b
 # Docs: https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
@@ -15,20 +16,26 @@ env:
       - BUILD
       - RUNTIME
 
-  # Cloud database (Turso) — set via: firebase apphosting:secrets:set TURSO_DATABASE_URL
-  - variable: TURSO_DATABASE_URL
-    secret: TURSO_DATABASE_URL
+  # Use Firestore (your existing Firebase database)
+  - variable: USE_FIRESTORE
+    value: "true"
     availability:
       - BUILD
       - RUNTIME
 
-  - variable: TURSO_AUTH_TOKEN
-    secret: TURSO_AUTH_TOKEN
+  - variable: FIREBASE_PROJECT_ID
+    value: money-command-3ee1b
     availability:
       - BUILD
       - RUNTIME
 
-  # Plaid bank linking (optional)
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: money-command-3ee1b
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Plaid — use your existing Firebase secrets if already configured
   - variable: PLAID_CLIENT_ID
     secret: PLAID_CLIENT_ID
     availability:

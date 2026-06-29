@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+*.zip
+dev.db
+.env
+.env.*
+!.env.example
+money-command-code.zip

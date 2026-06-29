@@ -110,8 +110,11 @@ export async function getBudgetData(month?: Date) {
   const budgets = await db.budget.findMany({
     where: { month: targetMonth },
     include: { category: true },
-    orderBy: { category: { name: "asc" } },
   });
+
+  const sortedBudgets = [...budgets].sort((a, b) =>
+    (a.category?.name ?? "").localeCompare(b.category?.name ?? "")
+  );
 
   const transactions = await db.transaction.findMany({
     where: {
@@ -132,7 +135,7 @@ export async function getBudgetData(month?: Date) {
     {} as Record<string, number>
   );
 
-  return budgets.map((budget) => {
+  return sortedBudgets.map((budget) => {
     const spent = spentByCategory[budget.categoryId] || 0;
     const remaining = budget.amount - spent;
     const percent = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;

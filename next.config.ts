@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: [
     "*.agent.cvm.dev",
     "*.github.dev",
@@ -12,6 +13,8 @@ const nextConfig: NextConfig = {
     "better-sqlite3",
     "@prisma/adapter-better-sqlite3",
     "@prisma/adapter-libsql",
+    "@prisma/adapter-pg",
+    "pg",
     "@libsql/client",
     "plaid",
   ],

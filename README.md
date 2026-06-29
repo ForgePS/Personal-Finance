@@ -64,9 +64,25 @@ PLAID_ENV=sandbox
 
 For production with real banks, apply for Plaid production access and set `PLAID_ENV=production`.
 
-### Deploy to Firebase
+### Deploy to Firebase (uses your existing project)
 
-Replace the old app on Firebase project **money-command-3ee1b** — see **[FIREBASE_DEPLOY.md](./FIREBASE_DEPLOY.md)** for step-by-step instructions (App Hosting + Turso cloud database + GitHub auto-deploy).
+Your Firebase project **money-command-3ee1b** already has the APIs — see **[FIREBASE_EXISTING.md](./FIREBASE_EXISTING.md)**.
+
+Uses **Firestore** (your Firebase database) + **App Hosting** + your existing **Plaid secrets**.
+
+### Deploy to Google Cloud (alternative)
+
+Deploy on **Cloud Run + Cloud SQL** — all within your Google Cloud project. See **[GCP_DEPLOY.md](./GCP_DEPLOY.md)**.
+
+```bash
+gcloud auth login
+gcloud config set project money-command-3ee1b
+./scripts/deploy-gcp.sh
+```
+
+### Deploy to Firebase App Hosting (alternative)
+
+See **[FIREBASE_DEPLOY.md](./FIREBASE_DEPLOY.md)** if you prefer Firebase's GitHub auto-deploy.
 
 ### Scripts
 
