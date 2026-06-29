@@ -33,6 +33,25 @@ export const CATEGORY_COLORS = [
   "#ec4899",
 ];
 
+export const CATEGORY_ICONS = [
+  { value: "tag", label: "Tag" },
+  { value: "briefcase", label: "Work" },
+  { value: "laptop", label: "Freelance" },
+  { value: "shopping-cart", label: "Groceries" },
+  { value: "utensils", label: "Dining" },
+  { value: "car", label: "Transport" },
+  { value: "home", label: "Housing" },
+  { value: "zap", label: "Utilities" },
+  { value: "film", label: "Entertainment" },
+  { value: "shopping-bag", label: "Shopping" },
+  { value: "heart-pulse", label: "Health" },
+  { value: "repeat", label: "Subscriptions" },
+  { value: "plane", label: "Travel" },
+  { value: "plus-circle", label: "Other" },
+  { value: "trending-up", label: "Investments" },
+  { value: "wallet", label: "Cash" },
+];
+
 export const LIABILITY_TYPES = ["CREDIT_CARD", "LOAN"] as const;
 
 export function isLiability(type: string): boolean {

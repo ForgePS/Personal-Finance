@@ -10,6 +10,7 @@ import {
   Target,
   TrendingUp,
   CalendarDays,
+  Settings,
   Menu,
   X,
   Command,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cash-flow", label: "Cash Flow", icon: TrendingUp },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {

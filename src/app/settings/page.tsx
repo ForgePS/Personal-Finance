@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { getSettingsData } from "@/lib/settings-service";
+import { SettingsPageClient } from "@/components/settings-page-client";
+
+export const metadata: Metadata = {
+  title: "Settings | Money Command",
+  description: "Manage categories, known expenses, accounts, and goals",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const params = await searchParams;
+  const data = await getSettingsData();
+
+  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals"];
+  const initialTab = validTabs.includes(params.tab ?? "")
+    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals")
+    : "categories";
+
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">Loading settings...</div>}>
+      <SettingsPageClient
+        initialTab={initialTab}
+        categories={data.categories}
+        accounts={data.accounts}
+        goals={data.goals.map((g) => ({
+          ...g,
+          targetDate: g.targetDate?.toISOString() ?? null,
+        }))}
+        paySchedules={data.paySchedules.map((s) => ({
+          ...s,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate?.toISOString() ?? null,
+        }))}
+        knownExpenses={data.scheduledExpenses.map((s) => ({
+          ...s,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate?.toISOString() ?? null,
+        }))}
+      />
+    </Suspense>
+  );
+}
