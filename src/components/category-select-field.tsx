@@ -112,6 +112,7 @@ export function CategorySelectField({
         category={modal === "new" ? null : modal}
         defaultType={type}
         onSaved={handleSaved}
+        zIndex={60}
       />
     </>
   );

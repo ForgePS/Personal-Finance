@@ -24,15 +24,18 @@ export function CategoryModal({
   category,
   defaultType = "EXPENSE",
   onSaved,
+  zIndex = 50,
 }: {
   isOpen: boolean;
   onClose: () => void;
   category?: CategoryRecord | null;
   defaultType?: "INCOME" | "EXPENSE";
   onSaved?: (category: CategoryRecord) => void;
+  zIndex?: number;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "",
     type: "EXPENSE" as "INCOME" | "EXPENSE",
@@ -43,6 +46,7 @@ export function CategoryModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    setError("");
     if (category) {
       setForm({
         name: category.name,
@@ -62,23 +66,32 @@ export function CategoryModal({
     }
   }, [isOpen, category, defaultType]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveCategory = async () => {
+    const trimmedName = form.name.trim();
+    if (!trimmedName) {
+      setError("Category name is required");
+      return;
+    }
+
     setLoading(true);
+    setError("");
     try {
+      const payload = { ...form, name: trimmedName };
       const res = await fetch(category ? `/api/categories/${category.id}` : "/api/categories", {
         method: category ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const saved = await res.json();
       if (!res.ok) {
-        alert(saved.error || "Failed to save category");
+        setError(saved.error || "Failed to save category");
         return;
       }
       router.refresh();
       onSaved?.(normalizeCategory(saved));
       onClose();
+    } catch {
+      setError("Could not save category. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -87,15 +100,18 @@ export function CategoryModal({
   const handleDelete = async () => {
     if (!category || !confirm(`Delete category "${category.name}"?`)) return;
     setLoading(true);
+    setError("");
     try {
       const res = await fetch(`/api/categories/${category.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Failed to delete category");
+        setError(data.error || "Failed to delete category");
         return;
       }
       router.refresh();
       onClose();
+    } catch {
+      setError("Could not delete category. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -106,14 +122,16 @@ export function CategoryModal({
       isOpen={isOpen}
       onClose={onClose}
       title={category ? "Edit Category" : "Add Category"}
+      zIndex={zIndex}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-4">
         <Input
           label="Name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
           placeholder="e.g. Groceries"
+          autoComplete="off"
         />
         <Select
           label="Type"
@@ -140,41 +158,71 @@ export function CategoryModal({
                 key={color}
                 type="button"
                 onClick={() => setForm({ ...form, color })}
-                className={`h-8 w-8 rounded-full transition-transform ${
+                className={`h-10 w-10 rounded-full transition-transform touch-manipulation ${
                   form.color === color ? "scale-110 ring-2 ring-indigo-500 ring-offset-2" : ""
                 }`}
                 style={{ backgroundColor: color }}
+                aria-label={`Select color ${color}`}
               />
             ))}
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-3 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={form.budgetable}
             onChange={(e) => setForm({ ...form, budgetable: e.target.checked })}
-            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
           />
           Include in budgets and envelopes
         </label>
-        <div className="flex justify-between gap-3 pt-2">
-          <div>
-            {category && (
-              <Button type="button" variant="danger" onClick={handleDelete} disabled={loading}>
-                Delete
+
+        {error && (
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
+        )}
+
+        <div className="sticky bottom-0 -mx-4 border-t border-slate-100 bg-white px-4 pt-4 sm:-mx-6 sm:px-6">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {category && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                disabled={loading}
+                className="w-full sm:w-auto"
+              >
+                Cancel
               </Button>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : category ? "Save Changes" : "Add Category"}
-            </Button>
+              <Button
+                type="button"
+                disabled={loading}
+                className="w-full sm:w-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void saveCategory();
+                }}
+              >
+                {loading ? "Saving..." : category ? "Save Changes" : "Add Category"}
+              </Button>
+            </div>
           </div>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 }
