@@ -1,7 +1,7 @@
 #!/bin/bash
 # Set up daily Plaid account sync at 7:30 AM via Cloud Scheduler.
 #
-# Run from project root after: firebase login && firebase use money-command-3ee1b
+# Run from project root after: npx firebase-tools login
 #
 # Optional env overrides:
 #   SYNC_TIMEZONE=America/New_York   # cron timezone (default)
