@@ -133,6 +133,42 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
   return { accountsSynced: allAccounts.length, transactionsSynced: added };
 }
 
+export interface SyncAllResult {
+  itemId: string;
+  institutionName: string | null;
+  ok: boolean;
+  accountsSynced?: number;
+  transactionsSynced?: number;
+  error?: string;
+}
+
+export async function syncAllPlaidItems(): Promise<SyncAllResult[]> {
+  const items = await db.plaidItem.findMany({ orderBy: { createdAt: "asc" } });
+  const results: SyncAllResult[] = [];
+
+  for (const item of items) {
+    try {
+      const { accountsSynced, transactionsSynced } = await syncPlaidItem(item.id);
+      results.push({
+        itemId: item.id,
+        institutionName: item.institutionName,
+        ok: true,
+        accountsSynced,
+        transactionsSynced,
+      });
+    } catch (error) {
+      results.push({
+        itemId: item.id,
+        institutionName: item.institutionName,
+        ok: false,
+        error: error instanceof Error ? error.message : "Sync failed",
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function getConnectedBanks() {
   return db.plaidItem.findMany({
     orderBy: { createdAt: "desc" },

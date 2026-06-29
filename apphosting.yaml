@@ -50,3 +50,9 @@ env:
     value: production
     availability:
       - RUNTIME
+
+  # Protects POST /api/cron/sync-accounts (daily bank sync via Cloud Scheduler)
+  - variable: CRON_SECRET
+    secret: CRON_SECRET@1
+    availability:
+      - RUNTIME
