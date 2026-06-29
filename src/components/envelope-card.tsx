@@ -2,7 +2,7 @@
 
 import { cn, formatCurrency } from "@/lib/utils";
 import { DynamicIcon } from "./dynamic-icon";
-import { ArrowRightLeft, Plus, Minus, ListChecks, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Plus, Minus, ListChecks, Trash2, Target } from "lucide-react";
 
 export interface EnvelopeTransaction {
   id: string;
@@ -18,10 +18,15 @@ export interface EnvelopeData {
   id: string;
   categoryId: string;
   allocated: number;
+  budgetAmount: number | null;
   spent: number;
   remaining: number;
+  budgetRemaining: number | null;
   percentUsed: number;
+  budgetPercentUsed: number | null;
   isOverspent: boolean;
+  isOverBudget: boolean;
+  isUnderFunded: boolean;
   transactions: EnvelopeTransaction[];
   category: {
     id: string;
@@ -37,6 +42,7 @@ export function EnvelopeCard({
   onTransfer,
   onReturn,
   onReconcile,
+  onSetBudget,
   onRemove,
 }: {
   envelope: EnvelopeData;
@@ -44,16 +50,24 @@ export function EnvelopeCard({
   onTransfer: () => void;
   onReturn: () => void;
   onReconcile: () => void;
+  onSetBudget: () => void;
   onRemove: () => void;
 }) {
-  const fillPercent =
-    envelope.allocated > 0 ? Math.min((envelope.spent / envelope.allocated) * 100, 100) : 0;
+  const hasBudget = envelope.budgetAmount != null;
+  const fillPercent = hasBudget
+    ? Math.min(envelope.budgetPercentUsed ?? 0, 100)
+    : envelope.allocated > 0
+      ? Math.min(envelope.percentUsed, 100)
+      : 0;
+  const fillLabel = hasBudget ? "of budget" : "remaining";
 
   return (
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all hover:shadow-md",
-        envelope.isOverspent ? "border-rose-300" : "border-slate-200/80 hover:border-indigo-200"
+        envelope.isOverspent || envelope.isOverBudget
+          ? "border-rose-300"
+          : "border-slate-200/80 hover:border-indigo-200"
       )}
     >
       <div
@@ -82,11 +96,23 @@ export function EnvelopeCard({
               </p>
             </div>
           </div>
-          {envelope.isOverspent && (
-            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-              Overspent
-            </span>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {envelope.isOverBudget && (
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                Over budget
+              </span>
+            )}
+            {envelope.isOverspent && (
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                Overspent
+              </span>
+            )}
+            {envelope.isUnderFunded && !envelope.isOverspent && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                Under-funded
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="relative mt-5">
@@ -94,28 +120,55 @@ export function EnvelopeCard({
             <div
               className={cn(
                 "absolute bottom-0 left-0 right-0 transition-all duration-700",
-                envelope.isOverspent ? "bg-rose-400" : "bg-gradient-to-t opacity-80"
+                envelope.isOverBudget || envelope.isOverspent
+                  ? "bg-rose-400"
+                  : "bg-gradient-to-t opacity-80"
               )}
               style={{
                 height: `${fillPercent}%`,
-                backgroundColor: envelope.isOverspent ? undefined : envelope.category.color,
+                backgroundColor:
+                  envelope.isOverBudget || envelope.isOverspent
+                    ? undefined
+                    : envelope.category.color,
               }}
             />
             <div className="relative flex h-full flex-col items-center justify-center">
-              <p
-                className={cn(
-                  "text-2xl font-bold tabular-nums",
-                  envelope.isOverspent ? "text-rose-700" : "text-slate-900"
-                )}
-              >
-                {formatCurrency(envelope.remaining)}
-              </p>
-              <p className="text-xs text-slate-500">remaining</p>
+              {hasBudget ? (
+                <>
+                  <p
+                    className={cn(
+                      "text-2xl font-bold tabular-nums",
+                      envelope.isOverBudget ? "text-rose-700" : "text-slate-900"
+                    )}
+                  >
+                    {formatCurrency(envelope.budgetRemaining ?? 0)}
+                  </p>
+                  <p className="text-xs text-slate-500">left in budget</p>
+                </>
+              ) : (
+                <>
+                  <p
+                    className={cn(
+                      "text-2xl font-bold tabular-nums",
+                      envelope.isOverspent ? "text-rose-700" : "text-slate-900"
+                    )}
+                  >
+                    {formatCurrency(envelope.remaining)}
+                  </p>
+                  <p className="text-xs text-slate-500">{fillLabel}</p>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
+          <div className="rounded-lg bg-slate-50 px-2 py-2">
+            <p className="font-medium text-slate-500">Budget</p>
+            <p className="mt-0.5 font-semibold tabular-nums text-slate-900">
+              {hasBudget ? formatCurrency(envelope.budgetAmount!) : "—"}
+            </p>
+          </div>
           <div className="rounded-lg bg-slate-50 px-2 py-2">
             <p className="font-medium text-slate-500">Allocated</p>
             <p className="mt-0.5 font-semibold tabular-nums text-slate-900">
@@ -129,14 +182,21 @@ export function EnvelopeCard({
             </p>
           </div>
           <div className="rounded-lg bg-slate-50 px-2 py-2">
-            <p className="font-medium text-slate-500">Used</p>
+            <p className="font-medium text-slate-500">Cash left</p>
             <p className="mt-0.5 font-semibold tabular-nums text-indigo-600">
-              {Math.round(envelope.percentUsed)}%
+              {formatCurrency(envelope.remaining)}
             </p>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:opacity-100">
+          <button
+            onClick={onSetBudget}
+            className="flex items-center justify-center gap-1 rounded-lg bg-violet-50 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100"
+          >
+            <Target className="h-3.5 w-3.5" />
+            Budget
+          </button>
           <button
             onClick={onFund}
             className="flex items-center justify-center gap-1 rounded-lg bg-indigo-50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100"

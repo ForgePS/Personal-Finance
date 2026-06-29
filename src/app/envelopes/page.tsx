@@ -45,6 +45,7 @@ export default async function EnvelopesPage({
       }))}
       availableCategories={data.availableCategories}
       overspentCount={data.overspentCount}
+      overBudgetCount={data.overBudgetCount}
     />
   );
 }

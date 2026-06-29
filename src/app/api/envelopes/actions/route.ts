@@ -7,6 +7,7 @@ import {
   deactivateEnvelope,
   fundPoolFromAccounts,
   reconcileTransaction,
+  setEnvelopeBudget,
 } from "@/lib/envelope-service";
 import { startOfMonth } from "date-fns";
 
@@ -61,7 +62,25 @@ export async function POST(request: NextRequest) {
         if (!body.categoryId) {
           return NextResponse.json({ error: "Category required" }, { status: 400 });
         }
-        data = await createEnvelope(body.categoryId, month);
+        const budgetAmount =
+          body.budgetAmount != null && body.budgetAmount !== ""
+            ? parseFloat(body.budgetAmount)
+            : null;
+        data = await createEnvelope(body.categoryId, month, budgetAmount);
+        break;
+      }
+      case "set-budget": {
+        if (!body.envelopeId) {
+          return NextResponse.json({ error: "Envelope required" }, { status: 400 });
+        }
+        const budgetAmount =
+          body.budgetAmount === null || body.budgetAmount === ""
+            ? null
+            : parseFloat(body.budgetAmount);
+        if (budgetAmount != null && (isNaN(budgetAmount) || budgetAmount < 0)) {
+          return NextResponse.json({ error: "Invalid budget amount" }, { status: 400 });
+        }
+        data = await setEnvelopeBudget(body.envelopeId, month, budgetAmount);
         break;
       }
       case "deactivate-envelope": {

@@ -19,10 +19,15 @@ export interface EnvelopeWithStats {
   categoryId: string;
   month: Date;
   allocated: number;
+  budgetAmount: number | null;
   spent: number;
   remaining: number;
+  budgetRemaining: number | null;
   percentUsed: number;
+  budgetPercentUsed: number | null;
   isOverspent: boolean;
+  isOverBudget: boolean;
+  isUnderFunded: boolean;
   transactions: EnvelopeTransaction[];
   category: {
     id: string;
@@ -123,15 +128,24 @@ export async function getEnvelopeData(month?: Date) {
       const spent = spentByCategory[envelope.categoryId] || 0;
       const remaining = envelope.allocated - spent;
       const percentUsed = envelope.allocated > 0 ? (spent / envelope.allocated) * 100 : 0;
+      const budgetAmount = envelope.budgetAmount ?? null;
+      const budgetRemaining = budgetAmount != null ? budgetAmount - spent : null;
+      const budgetPercentUsed =
+        budgetAmount != null && budgetAmount > 0 ? (spent / budgetAmount) * 100 : null;
       return {
         id: envelope.id,
         categoryId: envelope.categoryId,
         month: envelope.month,
         allocated: envelope.allocated,
+        budgetAmount,
         spent,
         remaining,
+        budgetRemaining,
         percentUsed,
+        budgetPercentUsed,
         isOverspent: remaining < 0,
+        isOverBudget: budgetAmount != null && spent > budgetAmount,
+        isUnderFunded: budgetAmount != null && envelope.allocated < budgetAmount,
         transactions: transactionsByCategory[envelope.categoryId] ?? [],
         category: {
           id: envelope.category.id,
@@ -144,6 +158,7 @@ export async function getEnvelopeData(month?: Date) {
     .sort((a, b) => a.category.name.localeCompare(b.category.name));
 
   const totalAllocated = envelopes.reduce((s, e) => s + e.allocated, 0);
+  const totalBudgeted = envelopes.reduce((s, e) => s + (e.budgetAmount ?? 0), 0);
   const totalSpent = envelopes.reduce((s, e) => s + e.spent, 0);
   const unallocated = pool.totalFunds - totalAllocated;
 
@@ -192,6 +207,7 @@ export async function getEnvelopeData(month?: Date) {
       id: pool.id,
       totalFunds: pool.totalFunds,
       totalAllocated,
+      totalBudgeted,
       totalSpent,
       unallocated,
     },
@@ -201,6 +217,7 @@ export async function getEnvelopeData(month?: Date) {
     uncategorizedTransactions,
     availableCategories,
     overspentCount: envelopes.filter((e) => e.isOverspent).length,
+    overBudgetCount: envelopes.filter((e) => e.isOverBudget).length,
   };
 }
 
@@ -220,7 +237,11 @@ export async function getAvailableEnvelopeAccounts() {
     }));
 }
 
-export async function createEnvelope(categoryId: string, month: Date) {
+export async function createEnvelope(
+  categoryId: string,
+  month: Date,
+  budgetAmount?: number | null
+) {
   const targetMonth = startOfMonth(month);
 
   const category = await db.category.findUnique({ where: { id: categoryId } });
@@ -236,20 +257,49 @@ export async function createEnvelope(categoryId: string, month: Date) {
     if (existing.isActive === false) {
       await db.envelope.update({
         where: { id: existing.id },
-        data: { isActive: true },
+        data: {
+          isActive: true,
+          ...(budgetAmount !== undefined && { budgetAmount }),
+        },
       });
       return getEnvelopeData(targetMonth);
     }
     throw new Error("An envelope already exists for this category");
   }
 
+  const normalizedBudget =
+    budgetAmount != null && budgetAmount > 0 ? budgetAmount : null;
+
   await db.envelope.create({
     data: {
       categoryId,
       month: targetMonth,
       allocated: 0,
+      budgetAmount: normalizedBudget,
       isActive: true,
     },
+  });
+
+  return getEnvelopeData(targetMonth);
+}
+
+export async function setEnvelopeBudget(
+  envelopeId: string,
+  month: Date,
+  budgetAmount: number | null
+) {
+  const targetMonth = startOfMonth(month);
+  const envelope = await db.envelope.findUnique({ where: { id: envelopeId } });
+  if (!envelope || envelope.isActive === false) {
+    throw new Error("Envelope not found");
+  }
+
+  const normalizedBudget =
+    budgetAmount != null && budgetAmount > 0 ? budgetAmount : null;
+
+  await db.envelope.update({
+    where: { id: envelopeId },
+    data: { budgetAmount: normalizedBudget },
   });
 
   return getEnvelopeData(targetMonth);

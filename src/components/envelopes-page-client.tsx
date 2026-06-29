@@ -16,6 +16,7 @@ import {
   CreateEnvelopeModal,
   FundPoolFromAccountsModal,
   ReconcileEnvelopeModal,
+  SetEnvelopeBudgetModal,
 } from "@/components/modals/envelope-modals";
 import { ChevronLeft, ChevronRight, Mail, Plus } from "lucide-react";
 
@@ -58,6 +59,7 @@ interface EnvelopesPageClientProps {
   pool: {
     totalFunds: number;
     totalAllocated: number;
+    totalBudgeted: number;
     totalSpent: number;
     unallocated: number;
   };
@@ -67,6 +69,7 @@ interface EnvelopesPageClientProps {
   uncategorizedTransactions: UncategorizedTransaction[];
   availableCategories: AvailableCategory[];
   overspentCount: number;
+  overBudgetCount: number;
 }
 
 export function EnvelopesPageClient({
@@ -78,6 +81,7 @@ export function EnvelopesPageClient({
   uncategorizedTransactions,
   availableCategories,
   overspentCount,
+  overBudgetCount,
 }: EnvelopesPageClientProps) {
   const router = useRouter();
   const monthDate = new Date(month);
@@ -88,6 +92,7 @@ export function EnvelopesPageClient({
   const [transferModal, setTransferModal] = useState<EnvelopeData | null>(null);
   const [returnModal, setReturnModal] = useState<EnvelopeData | null>(null);
   const [reconcileModal, setReconcileModal] = useState<EnvelopeData | null>(null);
+  const [budgetModal, setBudgetModal] = useState<EnvelopeData | null>(null);
 
   const envelopeOptions = envelopes.map((e) => ({
     categoryId: e.categoryId,
@@ -150,6 +155,7 @@ export function EnvelopesPageClient({
       <EnvelopePoolBanner
         totalFunds={pool.totalFunds}
         totalAllocated={pool.totalAllocated}
+        totalBudgeted={pool.totalBudgeted}
         totalSpent={pool.totalSpent}
         unallocated={pool.unallocated}
         onFundFromAccounts={() => setFundPoolOpen(true)}
@@ -158,8 +164,16 @@ export function EnvelopesPageClient({
 
       {overspentCount > 0 && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {overspentCount} {overspentCount === 1 ? "envelope is" : "envelopes are"} overspent.
-          Move money from another envelope, add pool funds, or review reconciled transactions.
+          {overspentCount} {overspentCount === 1 ? "envelope is" : "envelopes are"} overspent
+          (spent more than allocated). Move money from another envelope, add pool funds, or review
+          reconciled transactions.
+        </div>
+      )}
+
+      {overBudgetCount > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {overBudgetCount} {overBudgetCount === 1 ? "envelope is" : "envelopes are"} over its
+          monthly budget. Review spending or adjust the budget target.
         </div>
       )}
 
@@ -222,6 +236,7 @@ export function EnvelopesPageClient({
                 onTransfer={() => setTransferModal(envelope)}
                 onReturn={() => setReturnModal(envelope)}
                 onReconcile={() => setReconcileModal(envelope)}
+                onSetBudget={() => setBudgetModal(envelope)}
                 onRemove={() => handleRemoveEnvelope(envelope)}
               />
             ))}
@@ -302,6 +317,20 @@ export function EnvelopesPageClient({
           categoryId={fundModal.categoryId}
           categoryName={fundModal.category.name}
           unallocated={pool.unallocated}
+          budgetAmount={fundModal.budgetAmount}
+          allocated={fundModal.allocated}
+          month={monthDate}
+        />
+      )}
+
+      {budgetModal && (
+        <SetEnvelopeBudgetModal
+          isOpen={!!budgetModal}
+          onClose={() => setBudgetModal(null)}
+          envelopeId={budgetModal.id}
+          categoryName={budgetModal.category.name}
+          currentBudget={budgetModal.budgetAmount}
+          allocated={budgetModal.allocated}
           month={monthDate}
         />
       )}

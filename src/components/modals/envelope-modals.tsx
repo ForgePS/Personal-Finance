@@ -57,12 +57,14 @@ export function CreateEnvelopeModal({
 }) {
   const router = useRouter();
   const [categoryId, setCategoryId] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
     setCategoryId(availableCategories[0]?.id ?? "");
+    setBudgetAmount("");
     setError("");
   }, [isOpen, availableCategories]);
 
@@ -82,6 +84,7 @@ export function CreateEnvelopeModal({
         body: JSON.stringify({
           action: "create-envelope",
           categoryId,
+          budgetAmount: budgetAmount ? parseFloat(budgetAmount) : null,
           month: format(month, "yyyy-MM-dd"),
         }),
       });
@@ -131,6 +134,19 @@ export function CreateEnvelopeModal({
             emptyLabel="Select category..."
           />
         )}
+
+        <Input
+          label="Monthly budget (optional)"
+          type="number"
+          step="0.01"
+          min="0"
+          value={budgetAmount}
+          onChange={(e) => setBudgetAmount(e.target.value)}
+          placeholder="e.g. 500"
+        />
+        <p className="text-xs text-slate-500">
+          Set a spending target for this envelope. You can change it anytime.
+        </p>
 
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <div className="flex justify-end gap-3">
@@ -419,12 +435,130 @@ export function ReconcileEnvelopeModal({
   );
 }
 
+export function SetEnvelopeBudgetModal({
+  isOpen,
+  onClose,
+  envelopeId,
+  categoryName,
+  currentBudget,
+  allocated,
+  month,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  envelopeId: string;
+  categoryName: string;
+  currentBudget: number | null;
+  allocated: number;
+  month: Date;
+}) {
+  const router = useRouter();
+  const [budgetAmount, setBudgetAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setBudgetAmount(currentBudget != null ? String(currentBudget) : "");
+    setError("");
+  }, [isOpen, currentBudget]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/envelopes/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "set-budget",
+          envelopeId,
+          budgetAmount: budgetAmount.trim() === "" ? null : parseFloat(budgetAmount),
+          month: format(month, "yyyy-MM-dd"),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update budget");
+      router.refresh();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update budget");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClear = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/envelopes/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "set-budget",
+          envelopeId,
+          budgetAmount: null,
+          month: format(month, "yyyy-MM-dd"),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clear budget");
+      router.refresh();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to clear budget");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Budget for ${categoryName}`}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-slate-500">
+          Set how much you plan to spend in this category this month. Currently allocated:{" "}
+          <span className="font-semibold text-indigo-600">{formatCurrency(allocated)}</span>
+        </p>
+        <Input
+          label="Monthly budget"
+          type="number"
+          step="0.01"
+          min="0"
+          value={budgetAmount}
+          onChange={(e) => setBudgetAmount(e.target.value)}
+          placeholder="e.g. 500"
+        />
+        {error && <p className="text-sm text-rose-600">{error}</p>}
+        <div className="flex items-center justify-between gap-3">
+          {currentBudget != null && (
+            <Button type="button" variant="secondary" onClick={handleClear} disabled={loading}>
+              Clear budget
+            </Button>
+          )}
+          <div className="ml-auto flex gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Budget"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function FundEnvelopeModal({
   isOpen,
   onClose,
   categoryId,
   categoryName,
   unallocated,
+  budgetAmount,
+  allocated,
   month,
 }: {
   isOpen: boolean;
@@ -432,12 +566,23 @@ export function FundEnvelopeModal({
   categoryId: string;
   categoryName: string;
   unallocated: number;
+  budgetAmount: number | null;
+  allocated: number;
   month: Date;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const fundToBudgetAmount =
+    budgetAmount != null ? Math.max(0, budgetAmount - allocated) : null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setAmount("");
+    setError("");
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -473,6 +618,15 @@ export function FundEnvelopeModal({
           Move money from your unallocated pool into this envelope. Available:{" "}
           <span className="font-semibold text-emerald-600">{formatCurrency(unallocated)}</span>
         </p>
+        {fundToBudgetAmount != null && fundToBudgetAmount > 0 && (
+          <button
+            type="button"
+            onClick={() => setAmount(String(Math.min(fundToBudgetAmount, unallocated)))}
+            className="rounded-lg bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100"
+          >
+            Fund to budget ({formatCurrency(Math.min(fundToBudgetAmount, unallocated))})
+          </button>
+        )}
         <Input
           label="Amount"
           type="number"

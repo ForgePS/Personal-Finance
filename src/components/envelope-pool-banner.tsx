@@ -6,6 +6,7 @@ import { Wallet, PiggyBank, AlertCircle } from "lucide-react";
 interface EnvelopePoolBannerProps {
   totalFunds: number;
   totalAllocated: number;
+  totalBudgeted: number;
   totalSpent: number;
   unallocated: number;
   onFundFromAccounts: () => void;
@@ -15,6 +16,7 @@ interface EnvelopePoolBannerProps {
 export function EnvelopePoolBanner({
   totalFunds,
   totalAllocated,
+  totalBudgeted,
   totalSpent,
   unallocated,
   onFundFromAccounts,
@@ -50,11 +52,17 @@ export function EnvelopePoolBanner({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-5">
         <div>
           <p className="text-sm font-medium text-slate-500">Total Pool</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
             {formatCurrency(totalFunds)}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-slate-500">Budgeted</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-violet-600">
+            {formatCurrency(totalBudgeted)}
           </p>
         </div>
         <div>
