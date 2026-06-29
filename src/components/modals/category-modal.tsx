@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/constants";
+import { normalizeCategory } from "@/lib/category-utils";
 import { useRouter } from "next/navigation";
 
 export interface CategoryRecord {
@@ -22,11 +23,13 @@ export function CategoryModal({
   onClose,
   category,
   defaultType = "EXPENSE",
+  onSaved,
 }: {
   isOpen: boolean;
   onClose: () => void;
   category?: CategoryRecord | null;
   defaultType?: "INCOME" | "EXPENSE";
+  onSaved?: (category: CategoryRecord) => void;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,7 +49,7 @@ export function CategoryModal({
         type: category.type,
         icon: category.icon,
         color: category.color,
-        budgetable: category.budgetable,
+        budgetable: category.budgetable !== false,
       });
     } else {
       setForm({
@@ -63,12 +66,18 @@ export function CategoryModal({
     e.preventDefault();
     setLoading(true);
     try {
-      await fetch(category ? `/api/categories/${category.id}` : "/api/categories", {
+      const res = await fetch(category ? `/api/categories/${category.id}` : "/api/categories", {
         method: category ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      const saved = await res.json();
+      if (!res.ok) {
+        alert(saved.error || "Failed to save category");
+        return;
+      }
       router.refresh();
+      onSaved?.(normalizeCategory(saved));
       onClose();
     } finally {
       setLoading(false);

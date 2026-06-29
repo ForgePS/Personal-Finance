@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { normalizeCategory } from "@/lib/category-utils";
 
 export async function PATCH(
   request: NextRequest,
@@ -16,12 +17,12 @@ export async function PATCH(
       ...(body.icon !== undefined && { icon: body.icon }),
       ...(body.color !== undefined && { color: body.color }),
       ...(body.parentId !== undefined && { parentId: body.parentId || null }),
-      ...(body.budgetable !== undefined && { budgetable: body.budgetable }),
+      ...(body.budgetable !== undefined && { budgetable: body.budgetable !== false }),
     },
     include: { children: true },
   });
 
-  return NextResponse.json(category);
+  return NextResponse.json(normalizeCategory(category));
 }
 
 export async function DELETE(

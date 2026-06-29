@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { normalizeCategory } from "@/lib/category-utils";
 
 export async function getSettingsData() {
   const [categories, accounts, goals, paySchedules, scheduledExpenses] = await Promise.all([
@@ -21,5 +22,11 @@ export async function getSettingsData() {
     }),
   ]);
 
-  return { categories, accounts, goals, paySchedules, scheduledExpenses };
+  return {
+    categories: categories.map((category) => normalizeCategory(category)),
+    accounts,
+    goals,
+    paySchedules,
+    scheduledExpenses,
+  };
 }

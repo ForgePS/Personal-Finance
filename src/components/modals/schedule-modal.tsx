@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { CategorySelectField } from "@/components/category-select-field";
 import { useRouter } from "next/navigation";
 import {
   SCHEDULE_FREQUENCIES,
@@ -11,12 +12,6 @@ import {
   type ScheduleFrequency,
 } from "@/lib/schedule-types";
 import { format } from "date-fns";
-
-interface Category {
-  id: string;
-  name: string;
-  type: string;
-}
 
 interface Account {
   id: string;
@@ -77,7 +72,6 @@ export function ScheduleModal({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [form, setForm] = useState(defaultForm(type));
 
@@ -94,17 +88,11 @@ export function ScheduleModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    Promise.all([
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/accounts").then((r) => r.json()),
-    ]).then(([cats, accts]) => {
-      setCategories(
-        cats.filter((c: Category) =>
-          type === "income" ? c.type === "INCOME" : c.type === "EXPENSE"
-        )
-      );
-      setAccounts(accts);
-    });
+    fetch("/api/accounts")
+      .then((r) => r.json())
+      .then((accts) => {
+        setAccounts(accts);
+      });
 
     if (schedule) {
       setForm({
@@ -258,14 +246,12 @@ export function ScheduleModal({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label="Category (optional)"
+          <CategorySelectField
+            type={type === "income" ? "INCOME" : "EXPENSE"}
             value={form.categoryId}
-            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            options={[
-              { value: "", label: "None" },
-              ...categories.map((c) => ({ value: c.id, label: c.name })),
-            ]}
+            onChange={(categoryId) => setForm({ ...form, categoryId })}
+            label="Category (optional)"
+            emptyLabel="None"
           />
           <Select
             label="Account (optional)"

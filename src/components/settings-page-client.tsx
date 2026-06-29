@@ -384,7 +384,7 @@ function CategoryList({
             <div>
               <p className="font-medium text-slate-900">{cat.name}</p>
               <p className="text-xs text-slate-500">
-                {cat.budgetable ? "Budgetable" : "Not budgetable"}
+                {cat.budgetable !== false ? "Budgetable" : "Not budgetable"}
               </p>
             </div>
           </div>

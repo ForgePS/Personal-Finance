@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { normalizeCategory } from "@/lib/category-utils";
 
 export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get("type");
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
     orderBy: { name: "asc" },
     include: { children: true },
   });
-  return NextResponse.json(categories);
+  return NextResponse.json(categories.map((category) => normalizeCategory(category)));
 }
 
 export async function POST(request: NextRequest) {
@@ -20,8 +21,8 @@ export async function POST(request: NextRequest) {
       icon: body.icon || "tag",
       color: body.color || "#8b5cf6",
       parentId: body.parentId || null,
-      budgetable: body.budgetable ?? true,
+      budgetable: body.budgetable !== false,
     },
   });
-  return NextResponse.json(category, { status: 201 });
+  return NextResponse.json(normalizeCategory(category), { status: 201 });
 }

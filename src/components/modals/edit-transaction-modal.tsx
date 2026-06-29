@@ -6,12 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-
-interface Category {
-  id: string;
-  name: string;
-  type: string;
-}
+import { CategorySelectField } from "@/components/category-select-field";
 
 interface Account {
   id: string;
@@ -42,7 +37,6 @@ export function EditTransactionModal({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     accountId: "",
     categoryId: "",
@@ -59,10 +53,8 @@ export function EditTransactionModal({
 
     Promise.all([
       fetch("/api/accounts").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-    ]).then(([accts, cats]) => {
+    ]).then(([accts]) => {
       setAccounts(accts);
-      setCategories(cats);
     });
   }, [isOpen]);
 
@@ -86,9 +78,7 @@ export function EditTransactionModal({
     });
   }, [transaction, isOpen]);
 
-  const filteredCategories = categories.filter(
-    (c) => c.type === (form.type === "income" ? "INCOME" : "EXPENSE")
-  );
+  const categoryType = form.type === "income" ? "INCOME" : "EXPENSE";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,14 +166,11 @@ export function EditTransactionModal({
           onChange={(e) => setForm({ ...form, accountId: e.target.value })}
           options={accounts.map((a) => ({ value: a.id, label: a.name }))}
         />
-        <Select
-          label="Category"
+        <CategorySelectField
+          type={categoryType}
           value={form.categoryId}
-          onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-          options={[
-            { value: "", label: "Uncategorized" },
-            ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
-          ]}
+          onChange={(categoryId) => setForm({ ...form, categoryId })}
+          label="Category"
         />
         <Input
           label="Date"

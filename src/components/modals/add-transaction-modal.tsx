@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { CategorySelectField } from "@/components/category-select-field";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-
-interface Category {
-  id: string;
-  name: string;
-  type: string;
-}
 
 interface Account {
   id: string;
@@ -30,7 +25,6 @@ export function AddTransactionModal({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     accountId: defaultAccountId || "",
     categoryId: "",
@@ -45,10 +39,8 @@ export function AddTransactionModal({
     if (isOpen) {
       Promise.all([
         fetch("/api/accounts").then((r) => r.json()),
-        fetch("/api/categories").then((r) => r.json()),
-      ]).then(([accts, cats]) => {
+      ]).then(([accts]) => {
         setAccounts(accts);
-        setCategories(cats);
         if (!form.accountId && accts.length > 0) {
           setForm((f) => ({ ...f, accountId: defaultAccountId || accts[0].id }));
         }
@@ -56,9 +48,7 @@ export function AddTransactionModal({
     }
   }, [isOpen, defaultAccountId, form.accountId]);
 
-  const filteredCategories = categories.filter(
-    (c) => c.type === (form.type === "income" ? "INCOME" : "EXPENSE")
-  );
+  const categoryType = form.type === "income" ? "INCOME" : "EXPENSE";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,14 +130,12 @@ export function AddTransactionModal({
           onChange={(e) => setForm({ ...form, accountId: e.target.value })}
           options={accounts.map((a) => ({ value: a.id, label: a.name }))}
         />
-        <Select
-          label="Category"
+        <CategorySelectField
+          type={categoryType}
           value={form.categoryId}
-          onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-          options={[
-            { value: "", label: "Select category..." },
-            ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
-          ]}
+          onChange={(categoryId) => setForm({ ...form, categoryId })}
+          label="Category"
+          emptyLabel="Select category..."
         />
         <Input
           label="Date"
