@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { CategorySelectField } from "@/components/category-select-field";
 
@@ -48,12 +47,12 @@ export function CreateEnvelopeModal({
   isOpen,
   onClose,
   availableCategories,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
   availableCategories: AvailableCategory[];
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [categoryId, setCategoryId] = useState("");
@@ -85,7 +84,7 @@ export function CreateEnvelopeModal({
           action: "create-envelope",
           categoryId,
           budgetAmount: budgetAmount ? parseFloat(budgetAmount) : null,
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -165,11 +164,11 @@ export function CreateEnvelopeModal({
 export function FundPoolFromAccountsModal({
   isOpen,
   onClose,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -213,7 +212,7 @@ export function FundPoolFromAccountsModal({
           action: "fund-pool",
           fundings,
           note,
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -322,7 +321,7 @@ export function ReconcileEnvelopeModal({
   categoryName,
   transactions,
   uncategorizedTransactions,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -330,7 +329,7 @@ export function ReconcileEnvelopeModal({
   categoryName: string;
   transactions: EnvelopeTransaction[];
   uncategorizedTransactions: EnvelopeTransaction[];
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -347,7 +346,7 @@ export function ReconcileEnvelopeModal({
           action: "reconcile",
           transactionId,
           categoryId,
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -442,7 +441,7 @@ export function SetEnvelopeBudgetModal({
   categoryName,
   currentBudget,
   allocated,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -450,7 +449,7 @@ export function SetEnvelopeBudgetModal({
   categoryName: string;
   currentBudget: number | null;
   allocated: number;
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [budgetAmount, setBudgetAmount] = useState("");
@@ -475,7 +474,7 @@ export function SetEnvelopeBudgetModal({
           action: "set-budget",
           envelopeId,
           budgetAmount: budgetAmount.trim() === "" ? null : parseFloat(budgetAmount),
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -500,7 +499,7 @@ export function SetEnvelopeBudgetModal({
           action: "set-budget",
           envelopeId,
           budgetAmount: null,
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -559,7 +558,7 @@ export function FundEnvelopeModal({
   unallocated,
   budgetAmount,
   allocated,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -568,7 +567,7 @@ export function FundEnvelopeModal({
   unallocated: number;
   budgetAmount: number | null;
   allocated: number;
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
@@ -596,7 +595,7 @@ export function FundEnvelopeModal({
           action: "fund",
           categoryId,
           amount: parseFloat(amount),
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -659,7 +658,7 @@ export function TransferEnvelopeModal({
   fromCategoryName,
   fromRemaining,
   envelopes,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -667,7 +666,7 @@ export function TransferEnvelopeModal({
   fromCategoryName: string;
   fromRemaining: number;
   envelopes: EnvelopeOption[];
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [toCategoryId, setToCategoryId] = useState("");
@@ -692,7 +691,7 @@ export function TransferEnvelopeModal({
           toCategoryId,
           amount: parseFloat(amount),
           note,
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -767,14 +766,14 @@ export function ReturnToPoolModal({
   categoryId,
   categoryName,
   remaining,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
   categoryId: string;
   categoryName: string;
   remaining: number;
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
@@ -793,7 +792,7 @@ export function ReturnToPoolModal({
           action: "return",
           categoryId,
           amount: parseFloat(amount),
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       const data = await res.json();
@@ -843,12 +842,12 @@ export function EditPoolModal({
   isOpen,
   onClose,
   currentTotal,
-  month,
+  monthKey,
 }: {
   isOpen: boolean;
   onClose: () => void;
   currentTotal: number;
-  month: Date;
+  monthKey: string;
 }) {
   const router = useRouter();
   const [totalFunds, setTotalFunds] = useState(currentTotal.toString());
@@ -867,7 +866,7 @@ export function EditPoolModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           totalFunds: parseFloat(totalFunds),
-          month: format(month, "yyyy-MM-dd"),
+          month: monthKey,
         }),
       });
       router.refresh();

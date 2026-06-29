@@ -34,10 +34,14 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatShortDate(date: Date | string): string {
+  const d =
+    typeof date === "string" && /^\d{4}-\d{2}-\d{2}/.test(date)
+      ? parseLocalDate(date)
+      : new Date(date);
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
-  }).format(new Date(date));
+  }).format(d);
 }
 
 export function formatMonthYear(date: Date | string): string {
@@ -56,7 +60,12 @@ export function getMonthEnd(date: Date = new Date()): Date {
 }
 
 export function getMonthKey(date: Date | string): string {
-  const d = new Date(date);
+  const d =
+    typeof date === "string" && /^\d{4}-\d{2}$/.test(date)
+      ? parseMonthKey(date)
+      : date instanceof Date
+        ? date
+        : parseLocalDate(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -84,6 +93,15 @@ export function parseLocalDate(value: Date | string): Date {
   }
   const parsed = new Date(value);
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+/** Parse YYYY-MM or YYYY-MM-DD (or ISO) as a local month start */
+export function parseEnvelopeMonthInput(value: string): Date {
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    return parseMonthKey(value);
+  }
+  const local = parseLocalDate(value);
+  return new Date(local.getFullYear(), local.getMonth(), 1);
 }
 
 /** Normalize Date or ISO string from Firestore/Prisma for serialization */

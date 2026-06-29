@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addMonths, subMonths, format } from "date-fns";
+import { addMonths, subMonths } from "date-fns";
 import { EnvelopeCard, type EnvelopeData } from "@/components/envelope-card";
 import { EnvelopePoolBanner } from "@/components/envelope-pool-banner";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatMonthYear, formatShortDate, getMonthKey } from "@/lib/utils";
+import { formatCurrency, formatShortDate, getMonthKey } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   FundEnvelopeModal,
   TransferEnvelopeModal,
@@ -55,7 +56,7 @@ interface AvailableCategory {
 }
 
 interface EnvelopesPageClientProps {
-  month: string;
+  monthKey: string;
   pool: {
     totalFunds: number;
     totalAllocated: number;
@@ -73,7 +74,7 @@ interface EnvelopesPageClientProps {
 }
 
 export function EnvelopesPageClient({
-  month,
+  monthKey,
   pool,
   envelopes,
   recentTransfers,
@@ -84,7 +85,8 @@ export function EnvelopesPageClient({
   overBudgetCount,
 }: EnvelopesPageClientProps) {
   const router = useRouter();
-  const monthDate = new Date(month);
+  const [isPending, startTransition] = useTransition();
+  const monthDate = useMemo(() => new Date(`${monthKey}-01T12:00:00`), [monthKey]);
   const [editPoolOpen, setEditPoolOpen] = useState(false);
   const [fundPoolOpen, setFundPoolOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -102,7 +104,16 @@ export function EnvelopesPageClient({
 
   const navigateMonth = (direction: -1 | 1) => {
     const next = direction === 1 ? addMonths(monthDate, 1) : subMonths(monthDate, 1);
-    router.push(`/envelopes?month=${getMonthKey(next)}`);
+    startTransition(() => {
+      router.push(`/envelopes?month=${getMonthKey(next)}`);
+    });
+  };
+
+  const handleMonthPick = (value: string) => {
+    if (!value) return;
+    startTransition(() => {
+      router.push(`/envelopes?month=${value}`);
+    });
   };
 
   const handleRemoveEnvelope = async (envelope: EnvelopeData) => {
@@ -113,7 +124,7 @@ export function EnvelopesPageClient({
       body: JSON.stringify({
         action: "deactivate-envelope",
         envelopeId: envelope.id,
-        month: format(monthDate, "yyyy-MM-dd"),
+        month: monthKey,
       }),
     });
     const data = await res.json();
@@ -125,7 +136,7 @@ export function EnvelopesPageClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className={cn("space-y-8", isPending && "pointer-events-none opacity-60")}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
@@ -139,13 +150,20 @@ export function EnvelopesPageClient({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => navigateMonth(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="min-w-[10rem] text-center text-sm font-semibold text-slate-900">
-            {formatMonthYear(monthDate)}
-          </span>
+          <label className="sr-only" htmlFor="envelope-month">
+            Month
+          </label>
+          <input
+            id="envelope-month"
+            type="month"
+            value={monthKey}
+            onChange={(e) => handleMonthPick(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
           <Button variant="secondary" size="sm" onClick={() => navigateMonth(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -294,20 +312,20 @@ export function EnvelopesPageClient({
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         availableCategories={availableCategories}
-        month={monthDate}
+        monthKey={monthKey}
       />
 
       <FundPoolFromAccountsModal
         isOpen={fundPoolOpen}
         onClose={() => setFundPoolOpen(false)}
-        month={monthDate}
+        monthKey={monthKey}
       />
 
       <EditPoolModal
         isOpen={editPoolOpen}
         onClose={() => setEditPoolOpen(false)}
         currentTotal={pool.totalFunds}
-        month={monthDate}
+        monthKey={monthKey}
       />
 
       {fundModal && (
@@ -319,7 +337,7 @@ export function EnvelopesPageClient({
           unallocated={pool.unallocated}
           budgetAmount={fundModal.budgetAmount}
           allocated={fundModal.allocated}
-          month={monthDate}
+          monthKey={monthKey}
         />
       )}
 
@@ -331,7 +349,7 @@ export function EnvelopesPageClient({
           categoryName={budgetModal.category.name}
           currentBudget={budgetModal.budgetAmount}
           allocated={budgetModal.allocated}
-          month={monthDate}
+          monthKey={monthKey}
         />
       )}
 
@@ -343,7 +361,7 @@ export function EnvelopesPageClient({
           fromCategoryName={transferModal.category.name}
           fromRemaining={transferModal.remaining}
           envelopes={envelopeOptions}
-          month={monthDate}
+          monthKey={monthKey}
         />
       )}
 
@@ -354,7 +372,7 @@ export function EnvelopesPageClient({
           categoryId={returnModal.categoryId}
           categoryName={returnModal.category.name}
           remaining={returnModal.remaining}
-          month={monthDate}
+          monthKey={monthKey}
         />
       )}
 
@@ -366,7 +384,7 @@ export function EnvelopesPageClient({
           categoryName={reconcileModal.category.name}
           transactions={reconcileModal.transactions}
           uncategorizedTransactions={uncategorizedTransactions}
-          month={monthDate}
+          monthKey={monthKey}
         />
       )}
     </div>

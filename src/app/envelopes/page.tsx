@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { getEnvelopeData } from "@/lib/envelope-service";
+import { formatDateKey, getMonthKey, toIsoStringRequired, parseEnvelopeMonthInput } from "@/lib/utils";
 import { EnvelopesPageClient } from "@/components/envelopes-page-client";
-import { toIsoString, toIsoStringRequired } from "@/lib/utils";
-import { startOfMonth } from "date-fns";
 
 export const metadata: Metadata = {
   title: "Envelopes | Money Command",
@@ -17,18 +16,19 @@ export default async function EnvelopesPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const { month: monthParam } = await searchParams;
-  const month = monthParam ? startOfMonth(new Date(`${monthParam}-01`)) : undefined;
+  const monthKey = monthParam ?? getMonthKey(new Date());
+  const month = parseEnvelopeMonthInput(monthKey);
   const data = await getEnvelopeData(month);
 
   return (
     <EnvelopesPageClient
-      month={toIsoStringRequired(data.month)}
+      monthKey={getMonthKey(data.month)}
       pool={data.pool}
       envelopes={data.envelopes.map((envelope) => ({
         ...envelope,
         transactions: envelope.transactions.map((tx) => ({
           ...tx,
-          date: toIsoStringRequired(tx.date),
+          date: formatDateKey(tx.date),
         })),
       }))}
       recentTransfers={data.recentTransfers.map((t) => ({
@@ -41,7 +41,7 @@ export default async function EnvelopesPage({
       }))}
       uncategorizedTransactions={data.uncategorizedTransactions.map((tx) => ({
         ...tx,
-        date: toIsoStringRequired(tx.date),
+        date: formatDateKey(tx.date),
       }))}
       availableCategories={data.availableCategories}
       overspentCount={data.overspentCount}

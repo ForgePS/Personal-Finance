@@ -9,11 +9,11 @@ import {
   reconcileTransaction,
   setEnvelopeBudget,
 } from "@/lib/envelope-service";
-import { startOfMonth } from "date-fns";
+import { parseEnvelopeMonthInput, getMonthKey } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const month = startOfMonth(new Date(body.month ?? new Date()));
+  const month = parseEnvelopeMonthInput(body.month ?? getMonthKey(new Date()));
 
   try {
     let data;
