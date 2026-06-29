@@ -1,23 +1,15 @@
 #!/bin/bash
-# Run this AFTER creating PLAID_CLIENT_ID and PLAID_SECRET in Secret Manager.
-# This links secrets to your App Hosting backend (project IAM alone is not enough).
+# Link Plaid secrets to your App Hosting backend.
+# Run from the project root after: npx firebase-tools login && npx firebase-tools use money-command-3ee1b
 
 set -e
 
-PROJECT="money-command-3ee1b"
 BACKEND="money-command"
 
-echo "Granting App Hosting access to Plaid secrets..."
-echo "Project: $PROJECT  Backend: $BACKEND"
+echo "Granting App Hosting backend '$BACKEND' access to Plaid secrets..."
 echo ""
 
-npx firebase-tools apphosting:secrets:grantaccess PLAID_CLIENT_ID \
-  --backend "$BACKEND" \
-  --project "$PROJECT"
-
-npx firebase-tools apphosting:secrets:grantaccess PLAID_SECRET \
-  --backend "$BACKEND" \
-  --project "$PROJECT"
+npx firebase-tools apphosting:secrets:grantaccess PLAID_CLIENT_ID,PLAID_SECRET -b "$BACKEND"
 
 echo ""
-echo "Done. Now create a new rollout in Firebase App Hosting."
+echo "Done. Create a new rollout in Firebase App Hosting."
