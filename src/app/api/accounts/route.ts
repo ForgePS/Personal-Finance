@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+
+export async function GET() {
+  const accounts = await db.account.findMany({
+    where: { isArchived: false },
+    orderBy: { name: "asc" },
+    include: {
+      _count: { select: { transactions: true } },
+    },
+  });
+  return NextResponse.json(accounts);
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const account = await db.account.create({
+    data: {
+      name: body.name,
+      type: body.type,
+      institution: body.institution || null,
+      balance: parseFloat(body.balance) || 0,
+      color: body.color || "#6366f1",
+      icon: body.icon || "wallet",
+    },
+  });
+  return NextResponse.json(account, { status: 201 });
+}

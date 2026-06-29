@@ -1,0 +1,135 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader } from "@/components/ui/card";
+import { TransactionRow } from "@/components/transaction-row";
+import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
+import { Plus, Search } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+
+interface Transaction {
+  id: string;
+  description: string;
+  merchant: string | null;
+  amount: number;
+  date: Date | string;
+  category: { name: string; color: string; icon: string } | null;
+  account: { name: string; color: string } | null;
+}
+
+export function TransactionsPageClient({
+  initialTransactions,
+}: {
+  initialTransactions: Transaction[];
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+
+  const filtered = useMemo(() => {
+    return initialTransactions.filter((tx) => {
+      const matchesSearch =
+        !search ||
+        tx.description.toLowerCase().includes(search.toLowerCase()) ||
+        tx.merchant?.toLowerCase().includes(search.toLowerCase()) ||
+        tx.category?.name.toLowerCase().includes(search.toLowerCase());
+
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "income" && tx.amount > 0) ||
+        (filter === "expense" && tx.amount < 0);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [initialTransactions, search, filter]);
+
+  const totalIncome = filtered.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalExpense = filtered
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+          <p className="text-sm text-slate-500">{filtered.length} transactions</p>
+        </div>
+        <Button onClick={() => setShowModal(true)}>
+          <Plus className="h-4 w-4" />
+          Add Transaction
+        </Button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <p className="text-sm font-medium text-slate-500">Income</p>
+          <p className="mt-1 text-xl font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
+        </Card>
+        <Card>
+          <p className="text-sm font-medium text-slate-500">Expenses</p>
+          <p className="mt-1 text-xl font-bold text-rose-600">{formatCurrency(totalExpense)}</p>
+        </Card>
+        <Card>
+          <p className="text-sm font-medium text-slate-500">Net</p>
+          <p className="mt-1 text-xl font-bold text-indigo-600">
+            {formatCurrency(totalIncome - totalExpense)}
+          </p>
+        </Card>
+      </div>
+
+      <Card>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            />
+          </div>
+          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+            {(["all", "income", "expense"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-all ${
+                  filter === f
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {filtered.length === 0 ? (
+            <p className="py-12 text-center text-sm text-slate-500">No transactions found</p>
+          ) : (
+            filtered.map((tx) => (
+              <TransactionRow
+                key={tx.id}
+                id={tx.id}
+                description={tx.description}
+                merchant={tx.merchant}
+                amount={tx.amount}
+                date={tx.date}
+                category={tx.category}
+                account={tx.account}
+              />
+            ))
+          )}
+        </div>
+      </Card>
+
+      <AddTransactionModal isOpen={showModal} onClose={() => setShowModal(false)} />
+    </div>
+  );
+}

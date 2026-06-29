@@ -1,0 +1,29 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
+import { AddAccountModal } from "@/components/modals/add-account-modal";
+
+export function DashboardActions() {
+  const [showTransaction, setShowTransaction] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" onClick={() => setShowAccount(true)}>
+          <Plus className="h-4 w-4" />
+          Add Account
+        </Button>
+        <Button size="sm" onClick={() => setShowTransaction(true)}>
+          <Plus className="h-4 w-4" />
+          Add Transaction
+        </Button>
+      </div>
+      <AddTransactionModal isOpen={showTransaction} onClose={() => setShowTransaction(false)} />
+      <AddAccountModal isOpen={showAccount} onClose={() => setShowAccount(false)} />
+    </>
+  );
+}
