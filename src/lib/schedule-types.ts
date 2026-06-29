@@ -57,7 +57,7 @@ export function normalizeSchedule(schedule: ScheduleInput): ScheduleInput {
     secondDayOfMonth:
       schedule.secondDayOfMonth != null ? Number(schedule.secondDayOfMonth) : null,
     customIntervalDays:
-      schedule.customIntervalDays != null ? Number(schedule.customIntervalDays) : null,
+      schedule.customIntervalDays != null ? Math.max(1, Number(schedule.customIntervalDays) || 1) : null,
     frequency: String(schedule.frequency).toUpperCase() as ScheduleFrequency,
     isActive: schedule.isActive !== false,
   };

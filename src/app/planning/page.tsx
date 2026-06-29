@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPlanningData } from "@/lib/planning-service";
 import { PlanningPageClient } from "@/components/planning-page-client";
-import { getMonthKey, toIsoString, toIsoStringRequired } from "@/lib/utils";
+import { formatDateKey, getMonthKey, toIsoString, toIsoStringRequired } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Planning | Money Command",
@@ -19,6 +19,33 @@ export default async function PlanningPage({
   const monthKey = params.month ?? getMonthKey(new Date());
   const data = await getPlanningData(monthKey);
 
+  const byDay: Record<
+    string,
+    Array<{
+      id: string;
+      scheduleId: string;
+      name: string;
+      amount: number;
+      date: string;
+      type: "income" | "expense";
+      color: string;
+      categoryName?: string;
+    }>
+  > = {};
+
+  for (const [day, items] of Object.entries(data.calendar.byDay)) {
+    byDay[day] = items.map((o) => ({
+      id: o.id,
+      scheduleId: o.scheduleId,
+      name: o.name,
+      amount: o.amount,
+      date: formatDateKey(o.date),
+      type: o.type,
+      color: o.color,
+      categoryName: o.categoryName,
+    }));
+  }
+
   return (
     <PlanningPageClient
       monthKey={data.monthKey}
@@ -32,6 +59,14 @@ export default async function PlanningPage({
         startDate: toIsoStringRequired(s.startDate),
         endDate: toIsoString(s.endDate),
       }))}
+      calendar={{
+        totalIncome: data.calendar.totalIncome,
+        totalExpenses: data.calendar.totalExpenses,
+        net: data.calendar.net,
+        incomeCount: data.calendar.incomeCount,
+        expenseCount: data.calendar.expenseCount,
+        byDay,
+      }}
     />
   );
 }

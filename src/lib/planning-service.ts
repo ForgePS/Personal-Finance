@@ -8,10 +8,12 @@ export async function getPlanningData(monthKey?: string) {
 
   const [paySchedules, scheduledExpenses] = await Promise.all([
     db.paySchedule.findMany({
+      where: { isActive: true },
       orderBy: { name: "asc" },
       include: { category: true, account: true },
     }),
     db.scheduledExpense.findMany({
+      where: { isActive: true },
       orderBy: { name: "asc" },
       include: { category: true, account: true },
     }),

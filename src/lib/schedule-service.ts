@@ -38,21 +38,25 @@ function getWeeklyOccurrences(
   const occurrences: CalendarOccurrence[] = [];
   const start = toDate(schedule.startDate);
   const dayOfWeek = schedule.dayOfWeek ?? 5; // default Friday
+  const stepDays = Math.max(1, intervalWeeks) * 7;
 
   let cursor = start;
-  while (cursor.getDay() !== dayOfWeek) {
+  let guard = 0;
+  while (cursor.getDay() !== dayOfWeek && guard++ < 7) {
     cursor = addDays(cursor, 1);
   }
 
-  while (isBefore(cursor, monthStart)) {
-    cursor = addDays(cursor, intervalWeeks * 7);
+  guard = 0;
+  while (isBefore(cursor, monthStart) && guard++ < 520) {
+    cursor = addDays(cursor, stepDays);
   }
 
-  while (!isAfter(cursor, monthEnd)) {
+  guard = 0;
+  while (!isAfter(cursor, monthEnd) && guard++ < 40) {
     if (!isBefore(cursor, monthStart) && isInRange(cursor, start, schedule.endDate)) {
       occurrences.push(makeOccurrence(schedule, cursor, type));
     }
-    cursor = addDays(cursor, intervalWeeks * 7);
+    cursor = addDays(cursor, stepDays);
   }
 
   return occurrences;
@@ -129,14 +133,16 @@ function getCustomOccurrences(
 ): CalendarOccurrence[] {
   const occurrences: CalendarOccurrence[] = [];
   const start = toDate(schedule.startDate);
-  const interval = schedule.customIntervalDays ?? 30;
+  const interval = Math.max(1, schedule.customIntervalDays ?? 30);
 
   let cursor = start;
-  while (isBefore(cursor, monthStart)) {
+  let guard = 0;
+  while (isBefore(cursor, monthStart) && guard++ < 5000) {
     cursor = addDays(cursor, interval);
   }
 
-  while (!isAfter(cursor, monthEnd)) {
+  guard = 0;
+  while (!isAfter(cursor, monthEnd) && guard++ < 40) {
     if (isInRange(cursor, start, schedule.endDate)) {
       occurrences.push(makeOccurrence(schedule, cursor, type));
     }

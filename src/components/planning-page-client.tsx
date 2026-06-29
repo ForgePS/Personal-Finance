@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useTransition } from "react";
 import {
   addMonths,
   subMonths,
@@ -8,13 +8,12 @@ import {
   endOfMonth,
   eachDayOfInterval,
   format,
-  isSameMonth,
   isToday,
 } from "date-fns";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatMonthYear, getMonthKey } from "@/lib/utils";
-import { buildMonthCalendar, formatFrequencyLabel } from "@/lib/schedule-service";
+import { formatFrequencyLabel } from "@/lib/schedule-service";
 import { ScheduleModal, type ScheduleRecord } from "@/components/modals/schedule-modal";
 import {
   CalendarDays,
@@ -25,6 +24,7 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -40,62 +40,37 @@ interface CalendarOccurrence {
   categoryName?: string;
 }
 
+interface PlanningCalendar {
+  totalIncome: number;
+  totalExpenses: number;
+  net: number;
+  incomeCount: number;
+  expenseCount: number;
+  byDay: Record<string, CalendarOccurrence[]>;
+}
+
 interface PlanningPageClientProps {
   monthKey: string;
   paySchedules: ScheduleRecord[];
   scheduledExpenses: ScheduleRecord[];
-}
-
-function serializeCalendar(calendar: ReturnType<typeof buildMonthCalendar>) {
-  const byDay: Record<string, CalendarOccurrence[]> = {};
-  for (const [day, items] of Object.entries(calendar.byDay)) {
-    byDay[day] = items.map((o) => ({
-      id: o.id,
-      scheduleId: o.scheduleId,
-      name: o.name,
-      amount: o.amount,
-      date: o.date.toISOString(),
-      type: o.type,
-      color: o.color,
-      categoryName: o.categoryName,
-    }));
-  }
-
-  return {
-    totalIncome: calendar.totalIncome,
-    totalExpenses: calendar.totalExpenses,
-    net: calendar.net,
-    incomeCount: calendar.incomeCount,
-    expenseCount: calendar.expenseCount,
-    byDay,
-  };
+  calendar: PlanningCalendar;
 }
 
 export function PlanningPageClient({
   monthKey,
   paySchedules,
   scheduledExpenses,
+  calendar,
 }: PlanningPageClientProps) {
   const router = useRouter();
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(`${monthKey}-01`));
+  const [isPending, startTransition] = useTransition();
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<ScheduleRecord | null>(null);
   const [editingExpense, setEditingExpense] = useState<ScheduleRecord | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCurrentMonth(new Date(`${monthKey}-01`));
-    setSelectedDay(null);
-  }, [monthKey]);
-
-  const calendar = useMemo(
-    () =>
-      serializeCalendar(
-        buildMonthCalendar(paySchedules, scheduledExpenses, currentMonth)
-      ),
-    [paySchedules, scheduledExpenses, currentMonth]
-  );
+  const currentMonth = useMemo(() => new Date(`${monthKey}-01T12:00:00`), [monthKey]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -109,15 +84,22 @@ export function PlanningPageClient({
 
   const navigateMonth = (direction: -1 | 1) => {
     const next = direction === 1 ? addMonths(currentMonth, 1) : subMonths(currentMonth, 1);
-    setCurrentMonth(next);
     setSelectedDay(null);
-    router.push(`/planning?month=${getMonthKey(next)}`);
+    startTransition(() => {
+      router.push(`/planning?month=${getMonthKey(next)}`);
+    });
   };
 
   const selectedOccurrences = selectedDay ? calendar.byDay[selectedDay] ?? [] : [];
 
   return (
-    <div className="space-y-8">
+      <div className={cn("space-y-8", isPending && "pointer-events-none opacity-60")}>
+        {isPending && (
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading month...
+          </div>
+        )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
@@ -229,8 +211,7 @@ export function PlanningPageClient({
                       "min-h-[5.5rem] rounded-xl border p-1.5 text-left transition-all",
                       isSelected
                         ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/20"
-                        : "border-slate-100 hover:border-slate-200 hover:bg-slate-50",
-                      !isSameMonth(day, currentMonth) && "opacity-40"
+                        : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
                     )}
                   >
                     <span
