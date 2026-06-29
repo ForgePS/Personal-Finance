@@ -56,6 +56,7 @@ export const COLLECTIONS = {
   envelopePools: "envelopePools",
   envelopes: "envelopes",
   envelopeTransfers: "envelopeTransfers",
+  envelopePoolFundings: "envelopePoolFundings",
   plaidItems: "plaidItems",
   paySchedules: "paySchedules",
   scheduledExpenses: "scheduledExpenses",

@@ -99,6 +99,7 @@ model Account {
   goals           Goal[]
   paySchedules    PaySchedule[]
   scheduledExpenses ScheduledExpense[]
+  envelopePoolFundings EnvelopePoolFunding[]
 }
 
 model PlaidItem {
@@ -184,10 +185,21 @@ model Envelope {
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   month      DateTime
   allocated  Float    @default(0)
+  isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@unique([categoryId, month])
+}
+
+model EnvelopePoolFunding {
+  id        String   @id @default(cuid())
+  month     DateTime
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  amount    Float
+  note      String?
+  createdAt DateTime @default(now())
 }
 
 model EnvelopeTransfer {

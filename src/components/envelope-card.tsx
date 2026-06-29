@@ -2,7 +2,17 @@
 
 import { cn, formatCurrency } from "@/lib/utils";
 import { DynamicIcon } from "./dynamic-icon";
-import { ArrowRightLeft, Plus, Minus } from "lucide-react";
+import { ArrowRightLeft, Plus, Minus, ListChecks, Trash2 } from "lucide-react";
+
+export interface EnvelopeTransaction {
+  id: string;
+  description: string;
+  merchant: string | null;
+  amount: number;
+  date: string;
+  accountName: string;
+  isMatched: boolean;
+}
 
 export interface EnvelopeData {
   id: string;
@@ -12,6 +22,7 @@ export interface EnvelopeData {
   remaining: number;
   percentUsed: number;
   isOverspent: boolean;
+  transactions: EnvelopeTransaction[];
   category: {
     id: string;
     name: string;
@@ -25,15 +36,18 @@ export function EnvelopeCard({
   onFund,
   onTransfer,
   onReturn,
+  onReconcile,
+  onRemove,
 }: {
   envelope: EnvelopeData;
   onFund: () => void;
   onTransfer: () => void;
   onReturn: () => void;
+  onReconcile: () => void;
+  onRemove: () => void;
 }) {
-  const fillPercent = envelope.allocated > 0
-    ? Math.min((envelope.spent / envelope.allocated) * 100, 100)
-    : 0;
+  const fillPercent =
+    envelope.allocated > 0 ? Math.min((envelope.spent / envelope.allocated) * 100, 100) : 0;
 
   return (
     <div
@@ -42,7 +56,6 @@ export function EnvelopeCard({
         envelope.isOverspent ? "border-rose-300" : "border-slate-200/80 hover:border-indigo-200"
       )}
     >
-      {/* Envelope flap visual */}
       <div
         className="absolute -right-6 -top-6 h-16 w-16 rotate-45 opacity-10"
         style={{ backgroundColor: envelope.category.color }}
@@ -63,7 +76,10 @@ export function EnvelopeCard({
             </div>
             <div>
               <h3 className="font-semibold text-slate-900">{envelope.category.name}</h3>
-              <p className="text-xs text-slate-500">Expense envelope</p>
+              <p className="text-xs text-slate-500">
+                {envelope.transactions.length} matched transaction
+                {envelope.transactions.length === 1 ? "" : "s"}
+              </p>
             </div>
           </div>
           {envelope.isOverspent && (
@@ -73,7 +89,6 @@ export function EnvelopeCard({
           )}
         </div>
 
-        {/* Envelope fill visualization */}
         <div className="relative mt-5">
           <div className="h-24 overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
             <div
@@ -121,18 +136,25 @@ export function EnvelopeCard({
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:opacity-100">
           <button
             onClick={onFund}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+            className="flex items-center justify-center gap-1 rounded-lg bg-indigo-50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
           >
             <Plus className="h-3.5 w-3.5" />
             Fund
           </button>
           <button
+            onClick={onReconcile}
+            className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            Reconcile
+          </button>
+          <button
             onClick={onTransfer}
             disabled={envelope.remaining <= 0}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            className="flex items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Move
@@ -140,12 +162,22 @@ export function EnvelopeCard({
           <button
             onClick={onReturn}
             disabled={envelope.remaining <= 0}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            className="flex items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
           >
             <Minus className="h-3.5 w-3.5" />
             Return
           </button>
         </div>
+
+        {envelope.allocated === 0 && (
+          <button
+            onClick={onRemove}
+            className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-medium text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Remove envelope
+          </button>
+        )}
       </div>
     </div>
   );

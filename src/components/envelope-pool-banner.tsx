@@ -8,6 +8,7 @@ interface EnvelopePoolBannerProps {
   totalAllocated: number;
   totalSpent: number;
   unallocated: number;
+  onFundFromAccounts: () => void;
   onEditPool: () => void;
 }
 
@@ -16,6 +17,7 @@ export function EnvelopePoolBanner({
   totalAllocated,
   totalSpent,
   unallocated,
+  onFundFromAccounts,
   onEditPool,
 }: EnvelopePoolBannerProps) {
   const allocatedPercent = totalFunds > 0 ? (totalAllocated / totalFunds) * 100 : 0;
@@ -29,39 +31,47 @@ export function EnvelopePoolBanner({
           </div>
           <div>
             <h2 className="text-lg font-bold text-slate-900">Ready to Assign</h2>
-            <p className="text-sm text-slate-500">Your monthly money pool for envelopes</p>
+            <p className="text-sm text-slate-500">Fund from accounts, then allocate to envelopes</p>
           </div>
         </div>
-        <button
-          onClick={onEditPool}
-          className="rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
-        >
-          Edit Pool Amount
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onFundFromAccounts}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Fund from Accounts
+          </button>
+          <button
+            onClick={onEditPool}
+            className="rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+          >
+            Edit Pool Amount
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         <div>
           <p className="text-sm font-medium text-slate-500">Total Pool</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900 tabular-nums">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
             {formatCurrency(totalFunds)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">In Envelopes</p>
-          <p className="mt-1 text-2xl font-bold text-indigo-600 tabular-nums">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-indigo-600">
             {formatCurrency(totalAllocated)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">Unallocated</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600 tabular-nums">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600">
             {formatCurrency(unallocated)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">Total Spent</p>
-          <p className="mt-1 text-2xl font-bold text-rose-600 tabular-nums">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-rose-600">
             {formatCurrency(totalSpent)}
           </p>
         </div>

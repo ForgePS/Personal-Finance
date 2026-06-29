@@ -50,6 +50,10 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       if (item[key] === true) return false;
       continue;
     }
+    if (key === "isActive" && value === true) {
+      if (item[key] === false) return false;
+      continue;
+    }
     if (item[key] !== value) return false;
   }
   return true;
@@ -235,6 +239,12 @@ async function attachIncludes(
       : null;
   }
 
+  if (collection === COLLECTIONS.envelopePoolFundings && include.account) {
+    result.account = item.accountId
+      ? await findUnique(COLLECTIONS.accounts, { where: { id: item.accountId } })
+      : null;
+  }
+
   if (collection === COLLECTIONS.plaidItems && include.accounts) {
     result.accounts = await findMany(COLLECTIONS.accounts, {
       where: { plaidItemId: item.id, ...(typeof include.accounts === "object" ? (include.accounts as { where?: WhereInput }).where : {}) },
@@ -291,6 +301,7 @@ export const db = {
   envelopePool: makeModel(COLLECTIONS.envelopePools),
   envelope: makeModel(COLLECTIONS.envelopes),
   envelopeTransfer: makeModel(COLLECTIONS.envelopeTransfers),
+  envelopePoolFunding: makeModel(COLLECTIONS.envelopePoolFundings),
   plaidItem: makeModel(COLLECTIONS.plaidItems),
   paySchedule: makeModel(COLLECTIONS.paySchedules),
   scheduledExpense: makeModel(COLLECTIONS.scheduledExpenses),
