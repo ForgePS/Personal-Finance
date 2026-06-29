@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
+import { getTransactionAmountForAccount } from "@/lib/transfer-service";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { Card } from "@/components/ui/card";
 import { AccountTransactionHistory } from "@/components/account-transaction-history";
@@ -24,22 +25,48 @@ export default async function AccountDetailPage({
   const { id } = await params;
   const account = await db.account.findUnique({
     where: { id },
-    include: {
-      transactions: {
-        orderBy: { date: "desc" },
-        take: 50,
-        include: { category: true },
-      },
-    },
   });
 
   if (!account) notFound();
 
+  const transactions = await db.transaction.findMany({
+    where: { OR: [{ accountId: id }, { transferAccountId: id }] },
+    orderBy: { date: "desc" },
+    take: 50,
+    include: { category: true, account: true, transferAccount: true },
+  });
+
+  const mappedTransactions = transactions.map((tx) => {
+    const amount = getTransactionAmountForAccount(tx, id);
+    const isIncomingTransfer = tx.isTransfer && tx.transferAccountId === id;
+    return {
+      id: tx.id,
+      accountId: tx.accountId,
+      transferAccountId: tx.transferAccountId,
+      isTransfer: tx.isTransfer,
+      categoryId: tx.categoryId,
+      description: tx.description,
+      merchant: tx.merchant,
+      notes: tx.notes,
+      amount,
+      date: tx.date,
+      category: tx.category,
+      account: isIncomingTransfer && tx.account
+        ? { name: tx.account.name, color: tx.account.color }
+        : tx.account
+          ? { name: tx.account.name, color: tx.account.color }
+          : null,
+      transferAccount: tx.transferAccount
+        ? { name: tx.transferAccount.name, color: tx.transferAccount.color }
+        : null,
+    };
+  });
+
   const liability = isLiability(account.type);
-  const totalIn = account.transactions
+  const totalIn = mappedTransactions
     .filter((t) => t.amount > 0)
     .reduce((s, t) => s + t.amount, 0);
-  const totalOut = account.transactions
+  const totalOut = mappedTransactions
     .filter((t) => t.amount < 0)
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
@@ -90,7 +117,7 @@ export default async function AccountDetailPage({
         </Card>
         <Card>
           <p className="text-sm font-medium text-slate-500">Transactions</p>
-          <p className="mt-1 text-xl font-bold text-slate-900">{account.transactions.length}</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{mappedTransactions.length}</p>
         </Card>
       </div>
 
@@ -98,17 +125,7 @@ export default async function AccountDetailPage({
         <AccountTransactionHistory
           accountId={account.id}
           accountName={account.name}
-          transactions={account.transactions.map((tx) => ({
-            id: tx.id,
-            accountId: tx.accountId,
-            categoryId: tx.categoryId,
-            description: tx.description,
-            merchant: tx.merchant,
-            notes: tx.notes,
-            amount: tx.amount,
-            date: tx.date,
-            category: tx.category,
-          }))}
+          transactions={mappedTransactions}
         />
       </Card>
     </div>

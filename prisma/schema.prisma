@@ -95,7 +95,8 @@ model Account {
   lastSyncedAt    DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  transactions    Transaction[]
+  transactions         Transaction[] @relation("OwnedTransactions")
+  linkedTransfers      Transaction[] @relation("TransferTransactions")
   goals           Goal[]
   paySchedules    PaySchedule[]
   scheduledExpenses ScheduledExpense[]
@@ -135,7 +136,9 @@ model Category {
 model Transaction {
   id                 String   @id @default(cuid())
   accountId          String
-  account            Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account            Account  @relation("OwnedTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  transferAccountId  String?
+  transferAccount    Account? @relation("TransferTransactions", fields: [transferAccountId], references: [id], onDelete: SetNull)
   categoryId         String?
   category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   date               DateTime

@@ -29,6 +29,10 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       if (!value.some((clause) => matchesWhere(item, clause as WhereInput))) return false;
       continue;
     }
+    if (key === "AND" && Array.isArray(value)) {
+      if (!value.every((clause) => matchesWhere(item, clause as WhereInput))) return false;
+      continue;
+    }
     if (typeof value === "object" && value !== null) {
       const op = value as Record<string, unknown>;
       if ("gte" in op && "lte" in op) {
@@ -215,6 +219,11 @@ async function attachIncludes(
     if (include.account) {
       result.account = item.accountId
         ? await findUnique(COLLECTIONS.accounts, { where: { id: item.accountId } })
+        : null;
+    }
+    if (include.transferAccount) {
+      result.transferAccount = item.transferAccountId
+        ? await findUnique(COLLECTIONS.accounts, { where: { id: item.transferAccountId } })
         : null;
     }
   }

@@ -103,6 +103,8 @@ export default async function DashboardPage() {
                 date={tx.date}
                 category={tx.category}
                 account={tx.account}
+                transferAccount={tx.transferAccount}
+                isTransfer={tx.isTransfer}
               />
             ))}
           </div>

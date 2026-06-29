@@ -3,6 +3,7 @@
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { DynamicIcon } from "./dynamic-icon";
 import { cn } from "@/lib/utils";
+import { ArrowRightLeft } from "lucide-react";
 
 interface TransactionRowProps {
   id: string;
@@ -12,6 +13,8 @@ interface TransactionRowProps {
   date: Date | string;
   category?: { name: string; color: string; icon: string } | null;
   account?: { name: string; color: string } | null;
+  transferAccount?: { name: string; color: string } | null;
+  isTransfer?: boolean;
   onClick?: () => void;
 }
 
@@ -22,9 +25,18 @@ export function TransactionRow({
   date,
   category,
   account,
+  transferAccount,
+  isTransfer,
   onClick,
 }: TransactionRowProps) {
-  const isIncome = amount > 0;
+  const isIncome = !isTransfer && amount > 0;
+  const isTransferOut = isTransfer && amount < 0;
+
+  const subtitle = isTransfer && account && transferAccount
+    ? `${account.name} → ${transferAccount.name}`
+    : [merchant || category?.name || (isTransfer ? "Transfer" : "Uncategorized"), account?.name]
+        .filter(Boolean)
+        .join(" · ");
 
   return (
     <div
@@ -36,34 +48,46 @@ export function TransactionRow({
     >
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${category?.color || "#6366f1"}20` }}
+        style={{
+          backgroundColor: isTransfer
+            ? "#6366f120"
+            : `${category?.color || "#6366f1"}20`,
+        }}
       >
-        <DynamicIcon
-          name={category?.icon || "tag"}
-          className="h-5 w-5"
-          style={{ color: category?.color || "#6366f1" }}
-        />
+        {isTransfer ? (
+          <ArrowRightLeft className="h-5 w-5 text-indigo-600" />
+        ) : (
+          <DynamicIcon
+            name={category?.icon || "tag"}
+            className="h-5 w-5"
+            style={{ color: category?.color || "#6366f1" }}
+          />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900">{description}</p>
-        <p className="truncate text-xs text-slate-500">
-          {merchant || category?.name || "Uncategorized"}
-          {account && ` · ${account.name}`}
-        </p>
+        <p className="truncate text-xs text-slate-500">{subtitle}</p>
       </div>
 
       <div className="text-right">
         <p
           className={cn(
             "text-sm font-semibold tabular-nums",
-            isIncome ? "text-emerald-600" : "text-slate-900"
+            isTransfer
+              ? "text-indigo-600"
+              : isIncome
+                ? "text-emerald-600"
+                : "text-slate-900"
           )}
         >
-          {isIncome ? "+" : ""}
-          {formatCurrency(amount)}
+          {isTransfer
+            ? formatCurrency(Math.abs(amount))
+            : `${isIncome ? "+" : ""}${formatCurrency(amount)}`}
         </p>
-        <p className="text-xs text-slate-400">{formatShortDate(date)}</p>
+        <p className="text-xs text-slate-400">
+          {isTransfer ? (isTransferOut ? "Outgoing" : "Incoming") : formatShortDate(date)}
+        </p>
       </div>
     </div>
   );

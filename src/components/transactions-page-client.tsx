@@ -18,7 +18,7 @@ export function TransactionsPageClient({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
 
   const filtered = useMemo(() => {
     return initialTransactions.filter((tx) => {
@@ -26,20 +26,25 @@ export function TransactionsPageClient({
         !search ||
         tx.description.toLowerCase().includes(search.toLowerCase()) ||
         tx.merchant?.toLowerCase().includes(search.toLowerCase()) ||
-        tx.category?.name.toLowerCase().includes(search.toLowerCase());
+        tx.category?.name.toLowerCase().includes(search.toLowerCase()) ||
+        tx.account?.name.toLowerCase().includes(search.toLowerCase()) ||
+        tx.transferAccount?.name.toLowerCase().includes(search.toLowerCase());
 
       const matchesFilter =
         filter === "all" ||
-        (filter === "income" && tx.amount > 0) ||
-        (filter === "expense" && tx.amount < 0);
+        (filter === "transfer" && tx.isTransfer) ||
+        (filter === "income" && !tx.isTransfer && tx.amount > 0) ||
+        (filter === "expense" && !tx.isTransfer && tx.amount < 0);
 
       return matchesSearch && matchesFilter;
     });
   }, [initialTransactions, search, filter]);
 
-  const totalIncome = filtered.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalIncome = filtered
+    .filter((t) => !t.isTransfer && t.amount > 0)
+    .reduce((s, t) => s + t.amount, 0);
   const totalExpense = filtered
-    .filter((t) => t.amount < 0)
+    .filter((t) => !t.isTransfer && t.amount < 0)
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
   return (
@@ -99,7 +104,7 @@ export function TransactionsPageClient({
             />
           </div>
           <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-            {(["all", "income", "expense"] as const).map((f) => (
+            {(["all", "income", "expense", "transfer"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

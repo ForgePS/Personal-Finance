@@ -10,6 +10,8 @@ import {
 export interface TransactionListItem {
   id: string;
   accountId: string;
+  transferAccountId?: string | null;
+  isTransfer?: boolean;
   categoryId?: string | null;
   description: string;
   merchant?: string | null;
@@ -18,6 +20,7 @@ export interface TransactionListItem {
   date: Date | string;
   category?: { name: string; color: string; icon: string } | null;
   account?: { name: string; color: string } | null;
+  transferAccount?: { name: string; color: string } | null;
 }
 
 export function EditableTransactionList({
@@ -47,11 +50,15 @@ export function EditableTransactionList({
             amount={tx.amount}
             date={tx.date}
             category={tx.category}
-            account={showAccount ? tx.account : undefined}
+            account={showAccount ? tx.account : tx.isTransfer ? tx.account : undefined}
+            transferAccount={tx.isTransfer ? tx.transferAccount : undefined}
+            isTransfer={tx.isTransfer}
             onClick={() =>
               setEditing({
                 id: tx.id,
                 accountId: tx.accountId,
+                transferAccountId: tx.transferAccountId,
+                isTransfer: tx.isTransfer,
                 categoryId: tx.categoryId,
                 description: tx.description,
                 merchant: tx.merchant,
