@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   addMonths,
   subMonths,
@@ -14,7 +14,7 @@ import {
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatMonthYear, getMonthKey } from "@/lib/utils";
-import { formatFrequencyLabel } from "@/lib/schedule-service";
+import { buildMonthCalendar, formatFrequencyLabel } from "@/lib/schedule-service";
 import { ScheduleModal, type ScheduleRecord } from "@/components/modals/schedule-modal";
 import {
   CalendarDays,
@@ -37,19 +37,37 @@ interface CalendarOccurrence {
   date: string;
   type: "income" | "expense";
   color: string;
+  categoryName?: string;
 }
 
 interface PlanningPageClientProps {
   monthKey: string;
   paySchedules: ScheduleRecord[];
   scheduledExpenses: ScheduleRecord[];
-  calendar: {
-    totalIncome: number;
-    totalExpenses: number;
-    net: number;
-    incomeCount: number;
-    expenseCount: number;
-    byDay: Record<string, CalendarOccurrence[]>;
+}
+
+function serializeCalendar(calendar: ReturnType<typeof buildMonthCalendar>) {
+  const byDay: Record<string, CalendarOccurrence[]> = {};
+  for (const [day, items] of Object.entries(calendar.byDay)) {
+    byDay[day] = items.map((o) => ({
+      id: o.id,
+      scheduleId: o.scheduleId,
+      name: o.name,
+      amount: o.amount,
+      date: o.date.toISOString(),
+      type: o.type,
+      color: o.color,
+      categoryName: o.categoryName,
+    }));
+  }
+
+  return {
+    totalIncome: calendar.totalIncome,
+    totalExpenses: calendar.totalExpenses,
+    net: calendar.net,
+    incomeCount: calendar.incomeCount,
+    expenseCount: calendar.expenseCount,
+    byDay,
   };
 }
 
@@ -57,7 +75,6 @@ export function PlanningPageClient({
   monthKey,
   paySchedules,
   scheduledExpenses,
-  calendar,
 }: PlanningPageClientProps) {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(() => new Date(`${monthKey}-01`));
@@ -66,6 +83,19 @@ export function PlanningPageClient({
   const [editingIncome, setEditingIncome] = useState<ScheduleRecord | null>(null);
   const [editingExpense, setEditingExpense] = useState<ScheduleRecord | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentMonth(new Date(`${monthKey}-01`));
+    setSelectedDay(null);
+  }, [monthKey]);
+
+  const calendar = useMemo(
+    () =>
+      serializeCalendar(
+        buildMonthCalendar(paySchedules, scheduledExpenses, currentMonth)
+      ),
+    [paySchedules, scheduledExpenses, currentMonth]
+  );
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -224,18 +254,20 @@ export function PlanningPageClient({
                           -{formatCurrency(dayExpenses)}
                         </p>
                       )}
-                      {occurrences.slice(0, 2).map((o) => (
+                      {occurrences.slice(0, 3).map((o) => (
                         <div
                           key={o.id}
-                          className="truncate rounded px-1 text-[9px] text-white"
+                          className="truncate rounded px-1 text-[9px] font-medium text-white"
                           style={{ backgroundColor: o.color }}
+                          title={`${o.type === "income" ? "Income" : "Expense"}: ${o.name}`}
                         >
+                          {o.type === "income" ? "↑ " : "↓ "}
                           {o.name}
                         </div>
                       ))}
-                      {occurrences.length > 2 && (
+                      {occurrences.length > 3 && (
                         <p className="text-[9px] text-slate-400">
-                          +{occurrences.length - 2} more
+                          +{occurrences.length - 3} more
                         </p>
                       )}
                     </div>
@@ -266,7 +298,10 @@ export function PlanningPageClient({
                         />
                         <div>
                           <p className="font-medium text-slate-900">{occ.name}</p>
-                          <p className="text-xs capitalize text-slate-500">{occ.type}</p>
+                          <p className="text-xs capitalize text-slate-500">
+                            {occ.type === "income" ? "Pay schedule" : "Known expense"}
+                            {occ.categoryName ? ` · ${occ.categoryName}` : ""}
+                          </p>
                         </div>
                       </div>
                       <p
@@ -342,7 +377,10 @@ export function PlanningPageClient({
 
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <CardHeader title="Scheduled Expenses" subtitle="Recurring bills" />
+            <CardHeader
+              title="Known Expenses"
+              subtitle="Recurring bills from Settings"
+            />
               <Button
                 size="sm"
                 onClick={() => {
@@ -356,7 +394,7 @@ export function PlanningPageClient({
             </div>
             <div className="space-y-2">
               {scheduledExpenses.length === 0 ? (
-                <p className="text-sm text-slate-500">No scheduled expenses yet.</p>
+                <p className="text-sm text-slate-500">No known expenses yet. Add them in Settings → Known Expenses.</p>
               ) : (
                 scheduledExpenses.map((expense) => (
                   <button
