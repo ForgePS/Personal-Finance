@@ -19,19 +19,6 @@ export default async function PlanningPage({
   const monthKey = params.month ?? getMonthKey(new Date());
   const data = await getPlanningData(monthKey);
 
-  const byDay: Record<string, Array<{ id: string; scheduleId: string; name: string; amount: number; date: string; type: "income" | "expense"; color: string }>> = {};
-  for (const [day, items] of Object.entries(data.calendar.byDay)) {
-    byDay[day] = items.map((o) => ({
-      id: o.id,
-      scheduleId: o.scheduleId,
-      name: o.name,
-      amount: o.amount,
-      date: o.date.toISOString(),
-      type: o.type,
-      color: o.color,
-    }));
-  }
-
   return (
     <PlanningPageClient
       monthKey={data.monthKey}
@@ -45,14 +32,6 @@ export default async function PlanningPage({
         startDate: toIsoStringRequired(s.startDate),
         endDate: toIsoString(s.endDate),
       }))}
-      calendar={{
-        totalIncome: data.calendar.totalIncome,
-        totalExpenses: data.calendar.totalExpenses,
-        net: data.calendar.net,
-        incomeCount: data.calendar.incomeCount,
-        expenseCount: data.calendar.expenseCount,
-        byDay,
-      }}
     />
   );
 }
