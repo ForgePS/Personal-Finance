@@ -48,7 +48,13 @@ export function TransactionRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-900">{description}</p>
         <p className="truncate text-xs text-slate-500">
-          {merchant || category?.name || "Uncategorized"}
+          {merchant ||
+            category?.name ||
+            (onClick ? (
+              <span className="text-amber-600">Uncategorized — tap to set category</span>
+            ) : (
+              "Uncategorized"
+            ))}
           {account && ` · ${account.name}`}
         </p>
       </div>

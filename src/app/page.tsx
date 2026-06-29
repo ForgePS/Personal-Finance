@@ -3,7 +3,7 @@ import { getDashboardData } from "@/lib/services";
 import { formatCurrency, formatMonthYear } from "@/lib/utils";
 import { StatCard } from "@/components/ui/card";
 import { Card, CardHeader } from "@/components/ui/card";
-import { TransactionRow } from "@/components/transaction-row";
+import { DashboardRecentTransactions } from "@/components/dashboard-recent-transactions";
 import { AccountCard } from "@/components/account-card";
 import { GoalCard } from "@/components/goal-card";
 import { CashFlowChart, SpendingPieChart } from "@/components/charts";
@@ -92,20 +92,20 @@ export default async function DashboardPage() {
               </Link>
             }
           />
-          <div className="divide-y divide-slate-100">
-            {data.recentTransactions.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                id={tx.id}
-                description={tx.description}
-                merchant={tx.merchant}
-                amount={tx.amount}
-                date={tx.date}
-                category={tx.category}
-                account={tx.account}
-              />
-            ))}
-          </div>
+          <DashboardRecentTransactions
+            transactions={data.recentTransactions.map((tx) => ({
+              id: tx.id,
+              accountId: tx.accountId,
+              categoryId: tx.categoryId,
+              description: tx.description,
+              merchant: tx.merchant,
+              notes: tx.notes,
+              amount: tx.amount,
+              date: tx.date,
+              category: tx.category,
+              account: tx.account ? { name: tx.account.name, color: tx.account.color } : null,
+            }))}
+          />
         </Card>
 
         <Card>
