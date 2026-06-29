@@ -13,6 +13,8 @@ interface AccountCardProps {
   balance: number;
   color: string;
   icon: string;
+  isLinked?: boolean;
+  mask?: string | null;
 }
 
 export function AccountCard({
@@ -23,6 +25,8 @@ export function AccountCard({
   balance,
   color,
   icon,
+  isLinked,
+  mask,
 }: AccountCardProps) {
   const liability = isLiability(type);
 
@@ -44,6 +48,12 @@ export function AccountCard({
         </p>
         <p className="truncate text-sm text-slate-500">
           {institution || type.replace(/_/g, " ")}
+          {mask && ` · ••••${mask}`}
+          {isLinked && (
+            <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+              Linked
+            </span>
+          )}
         </p>
       </div>
 

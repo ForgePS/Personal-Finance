@@ -15,8 +15,8 @@ function createPrismaClient() {
 
 function getPrismaClient() {
   const cached = globalForPrisma.prisma;
-  // Recreate if the cached client is from before a schema change (e.g. envelope models)
-  if (cached && "envelopePool" in cached) {
+  // Recreate if the cached client is from before a schema change
+  if (cached && "envelopePool" in cached && "plaidItem" in cached) {
     return cached;
   }
   const client = createPrismaClient();

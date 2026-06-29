@@ -4,6 +4,7 @@ import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
 import { AccountCard } from "@/components/account-card";
 import { AccountsHeader } from "@/components/accounts-header";
+import { ConnectBankSection } from "@/components/connect-bank-section";
 import { Card, CardHeader } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -36,6 +37,8 @@ export default async function AccountsPage() {
     <div className="space-y-8">
       <AccountsHeader />
 
+      <ConnectBankSection />
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <p className="text-sm font-medium text-slate-500">Total Assets</p>
@@ -67,6 +70,8 @@ export default async function AccountsPage() {
                 balance={account.balance}
                 color={account.color}
                 icon={account.icon}
+                isLinked={account.isLinked}
+                mask={account.mask}
               />
             ))}
           </div>
@@ -87,6 +92,8 @@ export default async function AccountsPage() {
                 balance={account.balance}
                 color={account.color}
                 icon={account.icon}
+                isLinked={account.isLinked}
+                mask={account.mask}
               />
             ))}
           </div>

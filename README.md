@@ -8,6 +8,7 @@ A fully functional personal finance app inspired by Monarch Money. Track account
 
 - **Dashboard** — Net worth overview, income vs expenses, spending by category, recent transactions, and goals at a glance
 - **Accounts** — Manage checking, savings, credit cards, investments, loans, and cash accounts with real-time balances
+- **Bank Linking** — Connect real bank accounts via Plaid to auto-import balances and transactions
 - **Transactions** — Add, search, and filter income and expenses across all accounts
 - **Budgets** — Set monthly category budgets with visual progress bars and over-budget alerts
 - **Goals** — Create savings goals with progress tracking and target dates
@@ -43,6 +44,25 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+### Connect Your Bank Accounts
+
+Money Command uses [Plaid](https://plaid.com) to securely link bank accounts (same technology used by Monarch, Venmo, and thousands of finance apps).
+
+1. Sign up for free sandbox keys at [dashboard.plaid.com](https://dashboard.plaid.com/signup)
+2. Copy `.env.example` to `.env` and add your keys:
+
+```bash
+PLAID_CLIENT_ID=your_client_id
+PLAID_SECRET=your_sandbox_secret
+PLAID_ENV=sandbox
+```
+
+3. Restart the dev server (`npm run dev`)
+4. Go to **Accounts** → click **Connect Bank**
+5. In sandbox mode, use test credentials: `user_good` / `pass_good`
+
+For production with real banks, apply for Plaid production access and set `PLAID_ENV=production`.
 
 ### Scripts
 

@@ -22,18 +22,37 @@ enum CategoryType {
 }
 
 model Account {
-  id          String      @id @default(cuid())
-  name        String
-  type        AccountType
-  institution String?
-  balance     Float       @default(0)
-  color       String      @default("#6366f1")
-  icon        String      @default("wallet")
-  isArchived  Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  transactions Transaction[]
-  goals        Goal[]
+  id              String      @id @default(cuid())
+  name            String
+  type            AccountType
+  institution     String?
+  balance         Float       @default(0)
+  color           String      @default("#6366f1")
+  icon            String      @default("wallet")
+  isArchived      Boolean     @default(false)
+  isLinked        Boolean     @default(false)
+  plaidAccountId  String?     @unique
+  plaidItemId     String?
+  plaidItem       PlaidItem?  @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  mask            String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  transactions    Transaction[]
+  goals           Goal[]
+}
+
+model PlaidItem {
+  id              String    @id @default(cuid())
+  itemId          String    @unique
+  accessToken     String
+  institutionId   String?
+  institutionName String?
+  transactionsCursor String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  accounts        Account[]
 }
 
 model Category {
@@ -52,18 +71,19 @@ model Category {
 }
 
 model Transaction {
-  id          String   @id @default(cuid())
-  accountId   String
-  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  categoryId  String?
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  date        DateTime
-  amount      Float
-  description String
-  merchant    String?
-  notes       String?
-  isTransfer  Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id                 String   @id @default(cuid())
+  accountId          String
+  account            Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId         String?
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  date               DateTime
+  amount             Float
+  description        String
+  merchant           String?
+  notes              String?
+  isTransfer         Boolean  @default(false)
+  plaidTransactionId String?  @unique
+  createdAt          DateTime @default(now())
 }
 
 model Budget {
