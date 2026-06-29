@@ -56,6 +56,15 @@ export default async function AccountsPage() {
         </Card>
       </div>
 
+      {accounts.length === 0 ? (
+        <Card className="py-12 text-center">
+          <p className="text-lg font-semibold text-slate-900">No accounts yet</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Connect a bank above or use Add Account to get started.
+          </p>
+        </Card>
+      ) : (
+        <>
       {grouped.assets.length > 0 && (
         <div>
           <CardHeader title="Assets" subtitle="Accounts that grow your net worth" />
@@ -98,6 +107,8 @@ export default async function AccountsPage() {
             ))}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

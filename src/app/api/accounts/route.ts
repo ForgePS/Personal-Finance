@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       balance: parseFloat(body.balance) || 0,
       color: body.color || "#6366f1",
       icon: body.icon || "wallet",
+      isArchived: false,
+      isLinked: false,
     },
   });
   return NextResponse.json(account, { status: 201 });

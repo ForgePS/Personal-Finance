@@ -22,6 +22,7 @@ enum CategoryType {
 }
 
 enum ScheduleFrequency {
+  ONCE
   WEEKLY
   BIWEEKLY
   SEMIMONTHLY

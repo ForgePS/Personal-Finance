@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Card, CardHeader } from "@/components/ui/card";
-import { TransactionRow } from "@/components/transaction-row";
+import { Card } from "@/components/ui/card";
+import { AccountTransactionHistory } from "@/components/account-transaction-history";
 import { AccountDetailActions } from "@/components/account-detail-actions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -95,24 +95,21 @@ export default async function AccountDetailPage({
       </div>
 
       <Card>
-        <CardHeader title="Transaction History" subtitle="Recent activity on this account" />
-        <div className="divide-y divide-slate-100">
-          {account.transactions.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">No transactions yet</p>
-          ) : (
-            account.transactions.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                id={tx.id}
-                description={tx.description}
-                merchant={tx.merchant}
-                amount={tx.amount}
-                date={tx.date}
-                category={tx.category}
-              />
-            ))
-          )}
-        </div>
+        <AccountTransactionHistory
+          accountId={account.id}
+          accountName={account.name}
+          transactions={account.transactions.map((tx) => ({
+            id: tx.id,
+            accountId: tx.accountId,
+            categoryId: tx.categoryId,
+            description: tx.description,
+            merchant: tx.merchant,
+            notes: tx.notes,
+            amount: tx.amount,
+            date: tx.date,
+            category: tx.category,
+          }))}
+        />
       </Card>
     </div>
   );

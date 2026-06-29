@@ -45,6 +45,11 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       if (toDate(item[key]).toISOString() !== value.toISOString()) return false;
       continue;
     }
+    // Firestore docs may omit fields that Prisma defaults to false (e.g. isArchived).
+    if (key === "isArchived" && value === false) {
+      if (item[key] === true) return false;
+      continue;
+    }
     if (item[key] !== value) return false;
   }
   return true;

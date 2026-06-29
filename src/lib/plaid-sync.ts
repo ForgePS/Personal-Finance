@@ -56,6 +56,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
           color: ACCOUNT_COLORS[colorIndex % ACCOUNT_COLORS.length],
           icon: mapPlaidAccountIcon(type),
           isLinked: true,
+          isArchived: false,
           plaidAccountId: plaidAccount.account_id,
           plaidItemId: item.id,
           mask: plaidAccount.mask,

@@ -1,28 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader } from "@/components/ui/card";
-import { TransactionRow } from "@/components/transaction-row";
+import { Card } from "@/components/ui/card";
+import { EditableTransactionList, type TransactionListItem } from "@/components/editable-transaction-list";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-
-interface Transaction {
-  id: string;
-  description: string;
-  merchant: string | null;
-  amount: number;
-  date: Date | string;
-  category: { name: string; color: string; icon: string } | null;
-  account: { name: string; color: string } | null;
-}
 
 export function TransactionsPageClient({
   initialTransactions,
+  accountFilter,
 }: {
-  initialTransactions: Transaction[];
+  initialTransactions: TransactionListItem[];
+  accountFilter?: { id: string; name: string } | null;
 }) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
@@ -55,13 +47,27 @@ export function TransactionsPageClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
-          <p className="text-sm text-slate-500">{filtered.length} transactions</p>
+          <p className="text-sm text-slate-500">
+            {filtered.length} transactions
+            {accountFilter ? ` · ${accountFilter.name}` : ""}
+          </p>
         </div>
         <Button onClick={() => setShowModal(true)}>
           <Plus className="h-4 w-4" />
           Add Transaction
         </Button>
       </div>
+
+      {accountFilter && (
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+            Account: {accountFilter.name}
+            <Link href="/transactions" className="rounded-full p-0.5 hover:bg-indigo-100">
+              <X className="h-3.5 w-3.5" />
+            </Link>
+          </span>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -82,7 +88,7 @@ export function TransactionsPageClient({
 
       <Card>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative max-w-md flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -109,27 +115,19 @@ export function TransactionsPageClient({
           </div>
         </div>
 
-        <div className="divide-y divide-slate-100">
-          {filtered.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No transactions found</p>
-          ) : (
-            filtered.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                id={tx.id}
-                description={tx.description}
-                merchant={tx.merchant}
-                amount={tx.amount}
-                date={tx.date}
-                category={tx.category}
-                account={tx.account}
-              />
-            ))
-          )}
-        </div>
+        <p className="mb-3 text-sm text-slate-500">Click any row to edit category or details</p>
+        <EditableTransactionList
+          transactions={filtered}
+          showAccount={!accountFilter}
+          emptyMessage="No transactions found"
+        />
       </Card>
 
-      <AddTransactionModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      <AddTransactionModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        defaultAccountId={accountFilter?.id}
+      />
     </div>
   );
 }

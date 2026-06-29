@@ -184,6 +184,17 @@ export function getScheduleOccurrencesInMonth(
   const monthEnd = endOfMonth(month);
 
   switch (normalized.frequency as ScheduleFrequency) {
+    case "ONCE": {
+      const start = toDate(normalized.startDate);
+      if (
+        !isBefore(start, monthStart) &&
+        !isAfter(start, monthEnd) &&
+        isInRange(start, start, normalized.endDate)
+      ) {
+        return [makeOccurrence(normalized, start, type)];
+      }
+      return [];
+    }
     case "WEEKLY":
       return getWeeklyOccurrences(normalized, monthStart, monthEnd, 1, type);
     case "BIWEEKLY":
@@ -258,6 +269,8 @@ export function buildMonthCalendar(
 
 export function formatFrequencyLabel(schedule: ScheduleInput): string {
   switch (schedule.frequency) {
+    case "ONCE":
+      return "One time";
     case "WEEKLY": {
       const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       return `Weekly on ${days[schedule.dayOfWeek ?? 5]}`;
