@@ -7,13 +7,14 @@ import {
   isBefore,
   isSameDay,
   startOfMonth,
-  startOfDay,
   getDaysInMonth,
 } from "date-fns";
 import type { CalendarOccurrence, ScheduleFrequency, ScheduleInput } from "./schedule-types";
+import { normalizeSchedule } from "./schedule-types";
+import { formatDateKey, parseLocalDate } from "./utils";
 
 function toDate(d: Date | string): Date {
-  return startOfDay(new Date(d));
+  return parseLocalDate(d);
 }
 
 function isInRange(date: Date, start: Date, end?: Date | string | null): boolean {
@@ -151,7 +152,7 @@ function makeOccurrence(
   type: "income" | "expense"
 ): CalendarOccurrence {
   return {
-    id: `${schedule.id}-${date.toISOString().slice(0, 10)}`,
+    id: `${schedule.id}-${formatDateKey(date)}`,
     scheduleId: schedule.id,
     name: schedule.name,
     amount: schedule.amount,
@@ -170,38 +171,39 @@ export function getScheduleOccurrencesInMonth(
   month: Date,
   type: "income" | "expense"
 ): CalendarOccurrence[] {
-  if (schedule.isActive === false) return [];
+  const normalized = normalizeSchedule(schedule);
+  if (normalized.isActive === false) return [];
 
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
 
-  switch (schedule.frequency as ScheduleFrequency) {
+  switch (normalized.frequency as ScheduleFrequency) {
     case "WEEKLY":
-      return getWeeklyOccurrences(schedule, monthStart, monthEnd, 1, type);
+      return getWeeklyOccurrences(normalized, monthStart, monthEnd, 1, type);
     case "BIWEEKLY":
-      return getWeeklyOccurrences(schedule, monthStart, monthEnd, 2, type);
+      return getWeeklyOccurrences(normalized, monthStart, monthEnd, 2, type);
     case "SEMIMONTHLY":
-      return getSemiMonthlyOccurrences(schedule, monthStart, monthEnd, type);
+      return getSemiMonthlyOccurrences(normalized, monthStart, monthEnd, type);
     case "MONTHLY":
-      return getMonthlyOccurrences(schedule, monthStart, monthEnd, type, 1);
+      return getMonthlyOccurrences(normalized, monthStart, monthEnd, type, 1);
     case "QUARTERLY":
-      return getMonthlyOccurrences(schedule, monthStart, monthEnd, type, 3);
+      return getMonthlyOccurrences(normalized, monthStart, monthEnd, type, 3);
     case "YEARLY": {
-      const start = toDate(schedule.startDate);
-      const day = schedule.dayOfMonth ?? start.getDate();
+      const start = toDate(normalized.startDate);
+      const day = normalized.dayOfMonth ?? start.getDate();
       const occDate = clampDayOfMonth(monthStart.getFullYear(), monthStart.getMonth(), day);
       if (
         monthStart.getMonth() === start.getMonth() &&
         !isBefore(occDate, monthStart) &&
         !isAfter(occDate, monthEnd) &&
-        isInRange(occDate, start, schedule.endDate)
+        isInRange(occDate, start, normalized.endDate)
       ) {
-        return [makeOccurrence(schedule, occDate, type)];
+        return [makeOccurrence(normalized, occDate, type)];
       }
       return [];
     }
     case "CUSTOM":
-      return getCustomOccurrences(schedule, monthStart, monthEnd, type);
+      return getCustomOccurrences(normalized, monthStart, monthEnd, type);
     default:
       return [];
   }
@@ -212,10 +214,13 @@ export function buildMonthCalendar(
   scheduledExpenses: ScheduleInput[],
   month: Date
 ) {
-  const incomeOccurrences = paySchedules.flatMap((s) =>
+  const activePay = paySchedules.map(normalizeSchedule).filter((s) => s.isActive !== false);
+  const activeExpenses = scheduledExpenses.map(normalizeSchedule).filter((s) => s.isActive !== false);
+
+  const incomeOccurrences = activePay.flatMap((s) =>
     getScheduleOccurrencesInMonth(s, month, "income")
   );
-  const expenseOccurrences = scheduledExpenses.flatMap((s) =>
+  const expenseOccurrences = activeExpenses.flatMap((s) =>
     getScheduleOccurrencesInMonth(s, month, "expense")
   );
 
@@ -225,7 +230,7 @@ export function buildMonthCalendar(
 
   const byDay: Record<string, CalendarOccurrence[]> = {};
   for (const occ of all) {
-    const key = occ.date.toISOString().slice(0, 10);
+    const key = formatDateKey(occ.date);
     if (!byDay[key]) byDay[key] = [];
     byDay[key].push(occ);
   }

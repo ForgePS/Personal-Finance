@@ -48,6 +48,21 @@ export interface ScheduleInput {
   account?: { name: string } | null;
 }
 
+export function normalizeSchedule(schedule: ScheduleInput): ScheduleInput {
+  return {
+    ...schedule,
+    amount: Number(schedule.amount) || 0,
+    dayOfWeek: schedule.dayOfWeek != null ? Number(schedule.dayOfWeek) : null,
+    dayOfMonth: schedule.dayOfMonth != null ? Number(schedule.dayOfMonth) : null,
+    secondDayOfMonth:
+      schedule.secondDayOfMonth != null ? Number(schedule.secondDayOfMonth) : null,
+    customIntervalDays:
+      schedule.customIntervalDays != null ? Number(schedule.customIntervalDays) : null,
+    frequency: String(schedule.frequency).toUpperCase() as ScheduleFrequency,
+    isActive: schedule.isActive !== false,
+  };
+}
+
 export function parseScheduleInput(body: Record<string, unknown>) {
   return {
     name: String(body.name ?? ""),

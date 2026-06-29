@@ -65,6 +65,27 @@ export function parseMonthKey(key: string): Date {
   return new Date(year, month - 1, 1);
 }
 
+/** Local calendar date key (YYYY-MM-DD) — avoids UTC shifts from toISOString() */
+export function formatDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Parse date-only strings as local midnight */
+export function parseLocalDate(value: Date | string): Date {
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const parsed = new Date(value);
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
 /** Normalize Date or ISO string from Firestore/Prisma for serialization */
 export function toIsoString(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
