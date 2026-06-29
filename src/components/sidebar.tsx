@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Command,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/envelopes", label: "Envelopes", icon: Mail },
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cash-flow", label: "Cash Flow", icon: TrendingUp },
@@ -71,7 +73,7 @@ export function Sidebar() {
         <div className="rounded-xl bg-white/10 p-3">
           <p className="text-xs font-medium text-indigo-200">Pro Tip</p>
           <p className="mt-1 text-xs text-indigo-100/80">
-            Review your budgets weekly to stay on track with your financial goals.
+            Use envelopes to separate your money into expense categories each month.
           </p>
         </div>
       </div>

@@ -48,6 +48,7 @@ model Category {
   budgetable  Boolean      @default(true)
   transactions Transaction[]
   budgets      Budget[]
+  envelopes    Envelope[]
 }
 
 model Transaction {
@@ -86,4 +87,34 @@ model Goal {
   accountId     String?
   account       Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
   createdAt     DateTime  @default(now())
+}
+
+model EnvelopePool {
+  id         String   @id @default(cuid())
+  month      DateTime @unique
+  totalFunds Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Envelope {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  month      DateTime
+  allocated  Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([categoryId, month])
+}
+
+model EnvelopeTransfer {
+  id             String   @id @default(cuid())
+  month          DateTime
+  amount         Float
+  note           String?
+  fromCategoryId String?
+  toCategoryId   String?
+  createdAt      DateTime @default(now())
 }

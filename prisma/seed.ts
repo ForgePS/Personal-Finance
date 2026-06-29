@@ -9,6 +9,9 @@ const adapter = new PrismaBetterSqlite3({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  await prisma.envelopeTransfer.deleteMany();
+  await prisma.envelope.deleteMany();
+  await prisma.envelopePool.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.budget.deleteMany();
   await prisma.goal.deleteMany();
@@ -202,8 +205,39 @@ async function main() {
     },
   });
 
+  const monthlyIncome = 6050;
+
+  await prisma.envelopePool.create({
+    data: { month: currentMonth, totalFunds: monthlyIncome },
+  });
+
+  const envelopeCategories = [
+    groceries, dining, transport, housing, utilities, entertainment, shopping, health, subscriptions, travel,
+  ];
+  const envelopeAllocations = [500, 350, 250, 2200, 150, 150, 300, 100, 50, 400];
+
+  for (let i = 0; i < envelopeCategories.length; i++) {
+    await prisma.envelope.create({
+      data: {
+        categoryId: envelopeCategories[i].id,
+        month: currentMonth,
+        allocated: envelopeAllocations[i],
+      },
+    });
+  }
+
+  await prisma.envelopeTransfer.create({
+    data: {
+      month: currentMonth,
+      amount: 500,
+      fromCategoryId: null,
+      toCategoryId: groceries.id,
+      note: "Initial grocery funding",
+    },
+  });
+
   console.log("Seed completed successfully!");
-  console.log(`Created ${5} accounts, ${incomeCategories.length + expenseCategories.length} categories, ${transactions.length} transactions`);
+  console.log(`Created ${5} accounts, ${incomeCategories.length + expenseCategories.length} categories, ${transactions.length} transactions, ${envelopeCategories.length} envelopes`);
 }
 
 main()
