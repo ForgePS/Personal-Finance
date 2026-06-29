@@ -35,14 +35,14 @@ env:
       - BUILD
       - RUNTIME
 
-  # Plaid credentials from Secret Manager (pinned to version 1; v2 was destroyed)
+  # Plaid credentials from Secret Manager (pinned to version 1)
   - variable: PLAID_CLIENT_ID
-    secret: projects/611170516796/secrets/PLAID_CLIENT_ID/versions/1
+    secret: PLAID_CLIENT_ID@1
     availability:
       - RUNTIME
 
   - variable: PLAID_SECRET
-    secret: projects/611170516796/secrets/PLAID_SECRET/versions/1
+    secret: PLAID_SECRET@1
     availability:
       - RUNTIME
 
