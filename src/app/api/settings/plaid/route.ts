@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json({
     configured: Boolean(creds),
     clientId: creds?.clientId ?? "",
-    env: creds?.env ?? "sandbox",
+    env: creds?.env ?? "production",
     hasSecret: Boolean(creds?.secret),
   });
 }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     await savePlaidCredentials({
       clientId: String(body.clientId).trim(),
       secret: String(body.secret).trim(),
-      env: String(body.env || "sandbox"),
+      env: String(body.env || "production"),
     });
     return NextResponse.json({ ok: true, message: "Plaid keys saved" });
   } catch (error) {

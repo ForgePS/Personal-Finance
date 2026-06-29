@@ -38,6 +38,6 @@ env:
   # Plaid: Settings → Bank Linking in the app (Firestore). No Secret Manager needed.
 
   - variable: PLAID_ENV
-    value: sandbox
+    value: production
     availability:
       - RUNTIME

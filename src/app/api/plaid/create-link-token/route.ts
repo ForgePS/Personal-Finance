@@ -16,7 +16,7 @@ export async function POST() {
       {
         error: "Plaid is not configured",
         message:
-          "Add your Plaid keys in Settings → Bank Linking, or in .env for local dev. Get sandbox keys at https://dashboard.plaid.com",
+          "Add your Plaid keys in Settings → Bank Linking. Use production keys with Production environment.",
       },
       { status: 503 }
     );
@@ -53,7 +53,7 @@ export async function POST() {
         error: "Failed to create link token",
         message:
           plaidMessage ||
-          "Check that your Plaid sandbox keys are correct in Settings → Bank Linking",
+          "Check that your Plaid keys match the selected environment (production keys require Production mode)",
       },
       { status: 500 }
     );

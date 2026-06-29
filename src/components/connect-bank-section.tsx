@@ -183,20 +183,20 @@ export function ConnectBankSection() {
             <div>
               <p className="font-medium">Plaid setup required</p>
               <p className="mt-1 text-amber-800">
-                Add your Plaid sandbox keys in{" "}
+                Add your Plaid keys in{" "}
                 <a href="/settings?tab=bank-linking" className="font-medium underline">
                   Settings → Bank Linking
                 </a>
-                . Get free keys at{" "}
+                . Use <strong>Production</strong> environment with your production keys from{" "}
                 <a
-                  href="https://dashboard.plaid.com/signup"
+                  href="https://dashboard.plaid.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium underline"
                 >
                   dashboard.plaid.com
                 </a>
-                . Sandbox login: <strong>user_good</strong> / <strong>pass_good</strong>
+                .
               </p>
             </div>
           </div>

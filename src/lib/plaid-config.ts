@@ -14,7 +14,7 @@ export async function getPlaidCredentials(): Promise<PlaidCredentials | null> {
     return {
       clientId: process.env.PLAID_CLIENT_ID,
       secret: process.env.PLAID_SECRET,
-      env: process.env.PLAID_ENV || "sandbox",
+      env: process.env.PLAID_ENV || "production",
     };
   }
 
@@ -29,7 +29,7 @@ export async function getPlaidCredentials(): Promise<PlaidCredentials | null> {
   return {
     clientId: String(data.clientId),
     secret: String(data.secret),
-    env: String(data.env || "sandbox"),
+    env: String(data.env || "production"),
   };
 }
 
@@ -44,7 +44,7 @@ export async function savePlaidCredentials(credentials: PlaidCredentials): Promi
     .set({
       clientId: credentials.clientId,
       secret: credentials.secret,
-      env: credentials.env || "sandbox",
+      env: credentials.env || "production",
       updatedAt: new Date().toISOString(),
     });
 }

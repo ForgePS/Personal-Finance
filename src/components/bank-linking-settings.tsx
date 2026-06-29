@@ -16,7 +16,7 @@ export function BankLinkingSettings() {
   const [form, setForm] = useState({
     clientId: "",
     secret: "",
-    env: "sandbox",
+    env: "production",
   });
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export function BankLinkingSettings() {
         setForm((f) => ({
           ...f,
           clientId: data.clientId ?? "",
-          env: data.env ?? "sandbox",
+          env: data.env ?? "production",
         }));
       })
       .finally(() => setLoading(false));
@@ -60,14 +60,14 @@ export function BankLinkingSettings() {
     <Card>
       <CardHeader
         title="Bank Linking (Plaid)"
-        subtitle="Paste your Plaid sandbox keys here — no Google Secret Manager needed"
+        subtitle="Connect real banks using your Plaid production keys"
       />
       {loading ? (
         <p className="text-sm text-slate-500">Loading...</p>
       ) : (
         <form onSubmit={handleSave} className="space-y-4">
           <p className="text-sm text-slate-600">
-            Get free sandbox keys from{" "}
+            Get your keys from{" "}
             <a
               href="https://dashboard.plaid.com"
               target="_blank"
@@ -76,14 +76,15 @@ export function BankLinkingSettings() {
             >
               dashboard.plaid.com
             </a>{" "}
-            → Team Settings → Keys. Use the <strong>Sandbox</strong> client_id and secret.
+            → Team Settings → Keys. Use matching keys for the environment you select
+            (Production keys with <strong>Production</strong> environment).
           </p>
           <Input
             label="Plaid Client ID"
             value={form.clientId}
             onChange={(e) => setForm({ ...form, clientId: e.target.value })}
             required
-            placeholder="Paste sandbox client_id"
+            placeholder="Paste production client_id"
           />
           <Input
             label="Plaid Secret"
@@ -91,16 +92,16 @@ export function BankLinkingSettings() {
             value={form.secret}
             onChange={(e) => setForm({ ...form, secret: e.target.value })}
             required
-            placeholder="Paste sandbox secret"
+            placeholder="Paste production secret"
           />
           <Select
             label="Environment"
             value={form.env}
             onChange={(e) => setForm({ ...form, env: e.target.value })}
             options={[
-              { value: "sandbox", label: "Sandbox (testing)" },
+              { value: "production", label: "Production (real banks)" },
               { value: "development", label: "Development" },
-              { value: "production", label: "Production" },
+              { value: "sandbox", label: "Sandbox (testing only)" },
             ]}
           />
           <p className="text-xs text-slate-500">
@@ -108,7 +109,8 @@ export function BankLinkingSettings() {
             <Link href="/accounts" className="font-medium text-indigo-600 underline">
               Accounts → Connect Bank
             </Link>
-            . Sandbox login: <strong>user_good</strong> / <strong>pass_good</strong>
+            . Production uses your real bank login — sandbox uses{" "}
+            <strong>user_good</strong> / <strong>pass_good</strong>.
           </p>
           {error && (
             <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
