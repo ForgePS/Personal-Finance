@@ -35,20 +35,37 @@ No Turso. No separate Cloud SQL. Everything stays in Firebase.
 4. Backend ID: `money-command`
 5. Enable **automatic rollouts**
 
-### 3. Use your existing Plaid secrets
+### 3. Use your existing Plaid secrets (optional)
 
-If you already configured Plaid in Firebase Secret Manager, the app reads them automatically via `apphosting.yaml`.
+Bank linking is optional. The app deploys and runs without Plaid — you only need secrets if you want **Connect Bank**.
 
-If not set yet:
+**If deploy fails with "Misconfigured secret" / `PLAID_CLIENT_ID`:**
+
+Firebase App Hosting validates every `secret:` entry in `apphosting.yaml` at deploy time. If the secret doesn't exist (or the backend can't access it), the build fails in the preparer step.
+
+**Quick fix (deploy without Plaid):**  
+`apphosting.yaml` ships with Plaid secrets commented out. Push that version and redeploy — everything except bank linking will work.
+
+**To enable Plaid later:**
 
 ```bash
 firebase login
 firebase use money-command-3ee1b
 firebase apphosting:secrets:set PLAID_CLIENT_ID
 firebase apphosting:secrets:set PLAID_SECRET
+firebase apphosting:secrets:grantaccess PLAID_CLIENT_ID PLAID_SECRET --backend money-command
 ```
 
-Grant access to the App Hosting backend when prompted.
+Then uncomment the `PLAID_CLIENT_ID` and `PLAID_SECRET` blocks in `apphosting.yaml`, commit, and push.
+
+**If secrets already exist but deploy still fails:**  
+The App Hosting backend likely lacks permission. Run only the grant command:
+
+```bash
+firebase apphosting:secrets:grantaccess PLAID_CLIENT_ID PLAID_SECRET --backend money-command
+```
+
+Verify secrets in [Google Cloud Secret Manager](https://console.cloud.google.com/security/secret-manager?project=money-command-3ee1b).
 
 ### 4. Push to deploy
 
@@ -135,7 +152,10 @@ If you had a static site on Firebase Hosting, it won't be replaced automatically
 → Enable Firestore API in [Google Cloud Console](https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=money-command-3ee1b)
 
 **Plaid not working**  
-→ Confirm `PLAID_CLIENT_ID` and `PLAID_SECRET` secrets exist and are granted to App Hosting
+→ Plaid is optional. Uncomment `PLAID_*` secret blocks in `apphosting.yaml` only after creating secrets and granting access (see Step 3 above).
+
+**Deploy fails: "Misconfigured secret" / `PLAID_CLIENT_ID`**  
+→ Either create the secrets and run `firebase apphosting:secrets:grantaccess`, or keep Plaid commented out in `apphosting.yaml` to deploy without bank linking.
 
 **Empty dashboard**  
 → Firestore is empty on first deploy. Use the app to add accounts, or run seed locally against Firestore (see above)
