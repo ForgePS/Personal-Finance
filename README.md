@@ -64,6 +64,10 @@ PLAID_ENV=sandbox
 
 For production with real banks, apply for Plaid production access and set `PLAID_ENV=production`.
 
+### Deploy to Firebase
+
+Replace the old app on Firebase project **money-command-3ee1b** — see **[FIREBASE_DEPLOY.md](./FIREBASE_DEPLOY.md)** for step-by-step instructions (App Hosting + Turso cloud database + GitHub auto-deploy).
+
 ### Scripts
 
 | Command | Description |

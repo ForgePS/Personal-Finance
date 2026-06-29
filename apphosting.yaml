@@ -1,0 +1,45 @@
+# Firebase App Hosting configuration for Money Command
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  cpu: 1
+  memoryMiB: 1024
+  concurrency: 80
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Cloud database (Turso) — set via: firebase apphosting:secrets:set TURSO_DATABASE_URL
+  - variable: TURSO_DATABASE_URL
+    secret: TURSO_DATABASE_URL
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: TURSO_AUTH_TOKEN
+    secret: TURSO_AUTH_TOKEN
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Plaid bank linking (optional)
+  - variable: PLAID_CLIENT_ID
+    secret: PLAID_CLIENT_ID
+    availability:
+      - RUNTIME
+
+  - variable: PLAID_SECRET
+    secret: PLAID_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: PLAID_ENV
+    value: sandbox
+    availability:
+      - RUNTIME

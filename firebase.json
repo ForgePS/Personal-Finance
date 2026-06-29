@@ -1,0 +1,14 @@
+{
+  "apphosting": [
+    {
+      "backendId": "money-command",
+      "rootDir": "/",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "**/*.zip"
+      ]
+    }
+  ]
+}
