@@ -56,48 +56,59 @@ export default async function AccountsPage() {
         </Card>
       </div>
 
-      {grouped.assets.length > 0 && (
-        <div>
-          <CardHeader title="Assets" subtitle="Accounts that grow your net worth" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {grouped.assets.map((account) => (
-              <AccountCard
-                key={account.id}
-                id={account.id}
-                name={account.name}
-                type={account.type}
-                institution={account.institution}
-                balance={account.balance}
-                color={account.color}
-                icon={account.icon}
-                isLinked={account.isLinked}
-                mask={account.mask}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {accounts.length === 0 ? (
+        <Card className="py-12 text-center">
+          <p className="text-lg font-semibold text-slate-900">No accounts yet</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Connect a bank above or use Add Account to get started.
+          </p>
+        </Card>
+      ) : (
+        <>
+          {grouped.assets.length > 0 && (
+            <div>
+              <CardHeader title="Assets" subtitle="Accounts that grow your net worth" />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {grouped.assets.map((account) => (
+                  <AccountCard
+                    key={account.id}
+                    id={account.id}
+                    name={account.name}
+                    type={account.type}
+                    institution={account.institution}
+                    balance={account.balance}
+                    color={account.color}
+                    icon={account.icon}
+                    isLinked={account.isLinked}
+                    mask={account.mask}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {grouped.liabilities.length > 0 && (
-        <div>
-          <CardHeader title="Liabilities" subtitle="Debts and obligations" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {grouped.liabilities.map((account) => (
-              <AccountCard
-                key={account.id}
-                id={account.id}
-                name={account.name}
-                type={account.type}
-                institution={account.institution}
-                balance={account.balance}
-                color={account.color}
-                icon={account.icon}
-                isLinked={account.isLinked}
-                mask={account.mask}
-              />
-            ))}
-          </div>
-        </div>
+          {grouped.liabilities.length > 0 && (
+            <div>
+              <CardHeader title="Liabilities" subtitle="Debts and obligations" />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {grouped.liabilities.map((account) => (
+                  <AccountCard
+                    key={account.id}
+                    id={account.id}
+                    name={account.name}
+                    type={account.type}
+                    institution={account.institution}
+                    balance={account.balance}
+                    color={account.color}
+                    icon={account.icon}
+                    isLinked={account.isLinked}
+                    mask={account.mask}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
