@@ -153,6 +153,112 @@ export async function getConnectedBanks() {
   });
 }
 
+export interface AvailableSyncedAccount {
+  id: string;
+  plaidAccountId: string;
+  plaidItemId: string;
+  existingAccountId: string | null;
+  name: string;
+  mask: string | null;
+  type: string;
+  balance: number;
+  institutionName: string;
+}
+
+export async function getAvailableSyncedAccounts(): Promise<AvailableSyncedAccount[]> {
+  const items = await db.plaidItem.findMany({ orderBy: { createdAt: "desc" } });
+  if (items.length === 0) return [];
+
+  const plaid = await getPlaidClient();
+  const available: AvailableSyncedAccount[] = [];
+
+  for (const item of items) {
+    const response = await plaid.accountsGet({ access_token: item.accessToken });
+    const dbAccounts = await db.account.findMany({ where: { plaidItemId: item.id } });
+    const byPlaidId = new Map(
+      dbAccounts
+        .filter((account) => account.plaidAccountId)
+        .map((account) => [account.plaidAccountId as string, account])
+    );
+
+    for (const plaidAccount of response.data.accounts) {
+      const existing = byPlaidId.get(plaidAccount.account_id);
+      if (existing && existing.isArchived !== true) continue;
+
+      const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
+      const balance =
+        plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
+      const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
+
+      available.push({
+        id: existing?.id ?? plaidAccount.account_id,
+        plaidAccountId: plaidAccount.account_id,
+        plaidItemId: item.id,
+        existingAccountId: existing?.id ?? null,
+        name: plaidAccount.name,
+        mask: plaidAccount.mask ?? null,
+        type,
+        balance: accountBalance,
+        institutionName: item.institutionName || "Connected Bank",
+      });
+    }
+  }
+
+  return available;
+}
+
+export async function importSyncedAccount(plaidAccountId: string, plaidItemId: string) {
+  const item = await db.plaidItem.findUnique({ where: { id: plaidItemId } });
+  if (!item) throw new Error("Bank connection not found");
+
+  const plaid = await getPlaidClient();
+  const response = await plaid.accountsGet({ access_token: item.accessToken });
+  const plaidAccount = response.data.accounts.find(
+    (account) => account.account_id === plaidAccountId
+  );
+  if (!plaidAccount) throw new Error("Synced account not found");
+
+  const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
+  const balance =
+    plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
+  const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
+
+  const existing = await db.account.findFirst({ where: { plaidAccountId } });
+  if (existing) {
+    return db.account.update({
+      where: { id: existing.id },
+      data: {
+        name: plaidAccount.name,
+        type,
+        institution: item.institutionName,
+        balance: accountBalance,
+        mask: plaidAccount.mask,
+        isArchived: false,
+        isLinked: true,
+        plaidItemId: item.id,
+        lastSyncedAt: new Date(),
+      },
+    });
+  }
+
+  return db.account.create({
+    data: {
+      name: plaidAccount.name,
+      type,
+      institution: item.institutionName,
+      balance: accountBalance,
+      color: ACCOUNT_COLORS[0],
+      icon: mapPlaidAccountIcon(type),
+      isLinked: true,
+      isArchived: false,
+      plaidAccountId,
+      plaidItemId: item.id,
+      mask: plaidAccount.mask,
+      lastSyncedAt: new Date(),
+    },
+  });
+}
+
 export async function disconnectBank(plaidItemRecordId: string) {
   const item = await db.plaidItem.findUnique({
     where: { id: plaidItemRecordId },

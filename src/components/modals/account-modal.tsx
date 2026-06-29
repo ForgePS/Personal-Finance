@@ -42,6 +42,7 @@ export function AccountModal({
   const [institutionSelection, setInstitutionSelection] = useState<InstitutionSelection>({
     institution: "",
     plaidItemId: null,
+    plaidAccountId: null,
     syncedAccountId: null,
   });
 
@@ -58,6 +59,7 @@ export function AccountModal({
       setInstitutionSelection({
         institution: account.institution ?? "",
         plaidItemId: account.plaidItemId ?? null,
+        plaidAccountId: null,
         syncedAccountId: null,
       });
     } else {
@@ -71,6 +73,7 @@ export function AccountModal({
       setInstitutionSelection({
         institution: "",
         plaidItemId: null,
+        plaidAccountId: null,
         syncedAccountId: null,
       });
     }
@@ -134,6 +137,14 @@ export function AccountModal({
                 balance: String(syncedAccount.balance),
               }));
             }}
+            onManualEntry={() =>
+              setForm((current) => ({
+                ...current,
+                name: "",
+                type: "CHECKING",
+                balance: "0",
+              }))
+            }
           />
         )}
         <Input

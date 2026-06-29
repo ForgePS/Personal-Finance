@@ -6,41 +6,42 @@ import Link from "next/link";
 
 export interface SyncedAccountOption {
   id: string;
+  plaidAccountId: string;
+  plaidItemId: string;
+  existingAccountId: string | null;
   name: string;
   mask: string | null;
   type: string;
   balance: number;
-}
-
-export interface SyncedInstitution {
-  id: string;
-  name: string;
-  accounts: SyncedAccountOption[];
+  institutionName: string;
 }
 
 export interface InstitutionSelection {
   institution: string;
   plaidItemId: string | null;
+  plaidAccountId: string | null;
   syncedAccountId: string | null;
 }
 
 interface InstitutionFieldsProps {
   value: InstitutionSelection;
   onChange: (value: InstitutionSelection) => void;
-  onSyncedAccountPick?: (account: SyncedAccountOption & { institutionName: string }) => void;
+  onSyncedAccountPick?: (account: SyncedAccountOption) => void;
+  onManualEntry?: () => void;
   disabled?: boolean;
 }
 
-const OTHER_VALUE = "__other__";
+const MANUAL_VALUE = "__manual__";
 
 export function InstitutionFields({
   value,
   onChange,
   onSyncedAccountPick,
+  onManualEntry,
   disabled = false,
 }: InstitutionFieldsProps) {
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [institutions, setInstitutions] = useState<SyncedInstitution[]>([]);
+  const [syncedAccounts, setSyncedAccounts] = useState<SyncedAccountOption[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -51,82 +52,57 @@ export function InstitutionFields({
       .then((r) => r.json())
       .then((data) => {
         setConfigured(data.configured);
-        setInstitutions(data.institutions ?? []);
+        setSyncedAccounts(data.accounts ?? []);
       })
       .finally(() => setLoading(false));
   }, [disabled]);
 
-  const selectedInstitution = useMemo(
-    () => institutions.find((item) => item.id === value.plaidItemId) ?? null,
-    [institutions, value.plaidItemId]
+  const accountOptions = useMemo(
+    () =>
+      syncedAccounts.map((account) => ({
+        value: account.plaidAccountId,
+        label: `${account.institutionName} — ${account.name}${
+          account.mask ? ` ·•••${account.mask}` : ""
+        }`,
+      })),
+    [syncedAccounts]
   );
 
-  const institutionOptions = useMemo(() => {
-    const options = institutions.map((item) => ({
-      value: item.id,
-      label: `${item.name} (${item.accounts.length} synced account${item.accounts.length === 1 ? "" : "s"})`,
-    }));
+  const selectedValue = value.plaidAccountId
+    ? value.plaidAccountId
+    : value.institution && !value.plaidAccountId
+      ? MANUAL_VALUE
+      : "";
 
-    options.push({ value: OTHER_VALUE, label: "Other (manual entry)" });
-    return options;
-  }, [institutions]);
-
-  const institutionValue =
-    value.plaidItemId && institutions.some((item) => item.id === value.plaidItemId)
-      ? value.plaidItemId
-      : value.institution
-        ? OTHER_VALUE
-        : "";
-
-  const syncedAccountOptions = useMemo(() => {
-    if (!selectedInstitution) return [];
-    return selectedInstitution.accounts.map((account) => ({
-      value: account.id,
-      label: `${account.name}${account.mask ? ` ·•••${account.mask}` : ""}`,
-    }));
-  }, [selectedInstitution]);
-
-  const handleInstitutionChange = (nextValue: string) => {
-    if (nextValue === OTHER_VALUE) {
+  const handleAccountChange = (plaidAccountId: string) => {
+    if (plaidAccountId === MANUAL_VALUE) {
       onChange({
         institution: value.institution,
         plaidItemId: null,
+        plaidAccountId: null,
         syncedAccountId: null,
       });
+      onManualEntry?.();
       return;
     }
 
-    const institution = institutions.find((item) => item.id === nextValue);
-    onChange({
-      institution: institution?.name ?? "",
-      plaidItemId: institution?.id ?? null,
-      syncedAccountId: null,
-    });
-  };
-
-  const handleSyncedAccountChange = (accountId: string) => {
-    if (!selectedInstitution) return;
-
-    const account = selectedInstitution.accounts.find((item) => item.id === accountId);
+    const account = syncedAccounts.find((item) => item.plaidAccountId === plaidAccountId);
     if (!account) return;
 
     onChange({
-      institution: selectedInstitution.name,
-      plaidItemId: selectedInstitution.id,
-      syncedAccountId: accountId,
+      institution: account.institutionName,
+      plaidItemId: account.plaidItemId,
+      plaidAccountId: account.plaidAccountId,
+      syncedAccountId: account.existingAccountId ?? account.id,
     });
-
-    onSyncedAccountPick?.({
-      ...account,
-      institutionName: selectedInstitution.name,
-    });
+    onSyncedAccountPick?.(account);
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading synced institutions...</p>;
+    return <p className="text-sm text-slate-500">Loading synced accounts...</p>;
   }
 
-  if (configured === false || institutions.length === 0) {
+  if (configured === false || syncedAccounts.length === 0) {
     return (
       <div className="space-y-3">
         <Input
@@ -136,6 +112,7 @@ export function InstitutionFields({
             onChange({
               institution: e.target.value,
               plaidItemId: null,
+              plaidAccountId: null,
               syncedAccountId: null,
             })
           }
@@ -148,12 +125,12 @@ export function InstitutionFields({
             <Link href="/accounts" className="font-medium text-indigo-600 hover:text-indigo-700">
               Accounts
             </Link>{" "}
-            page to pick from synced institutions.
+            page to pick from synced accounts.
           </p>
         )}
-        {configured && institutions.length === 0 && (
+        {configured && syncedAccounts.length === 0 && (
           <p className="text-xs text-slate-500">
-            No synced institutions yet. Connect a bank to select from synced accounts.
+            All synced accounts are already on your Accounts page, or no banks are connected yet.
           </p>
         )}
       </div>
@@ -164,13 +141,17 @@ export function InstitutionFields({
     <div className="space-y-4">
       <Select
         label="Institution"
-        value={institutionValue}
-        onChange={(e) => handleInstitutionChange(e.target.value)}
-        options={[{ value: "", label: "Select a synced institution..." }, ...institutionOptions]}
+        value={selectedValue}
+        onChange={(e) => handleAccountChange(e.target.value)}
+        options={[
+          { value: "", label: "Select a synced account..." },
+          ...accountOptions,
+          { value: MANUAL_VALUE, label: "Manual account (enter details yourself)" },
+        ]}
         disabled={disabled}
       />
 
-      {institutionValue === OTHER_VALUE && (
+      {selectedValue === MANUAL_VALUE && (
         <Input
           label="Institution Name"
           value={value.institution}
@@ -178,6 +159,7 @@ export function InstitutionFields({
             onChange({
               institution: e.target.value,
               plaidItemId: null,
+              plaidAccountId: null,
               syncedAccountId: null,
             })
           }
@@ -186,22 +168,11 @@ export function InstitutionFields({
         />
       )}
 
-      {selectedInstitution && syncedAccountOptions.length > 0 && (
-        <Select
-          label="Synced Account (optional)"
-          value={value.syncedAccountId ?? ""}
-          onChange={(e) => handleSyncedAccountChange(e.target.value)}
-          options={[
-            { value: "", label: "Choose a synced account to pre-fill..." },
-            ...syncedAccountOptions,
-          ]}
-          disabled={disabled}
-        />
+      {value.plaidAccountId && value.institution && (
+        <p className="text-xs text-slate-500">
+          Account name, type, and balance will auto-fill from your selection.
+        </p>
       )}
-
-      <p className="text-xs text-slate-500">
-        Pick a connected institution and optionally select a synced account to pre-fill details.
-      </p>
     </div>
   );
 }
