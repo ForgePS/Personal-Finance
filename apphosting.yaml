@@ -35,17 +35,8 @@ env:
       - BUILD
       - RUNTIME
 
-  - variable: PLAID_CLIENT_ID
-    secret: PLAID_CLIENT_ID
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: PLAID_SECRET
-    secret: PLAID_SECRET
-    availability:
-      - BUILD
-      - RUNTIME
+  # Plaid keys: set in the app under Settings → Bank Linking (stored in Firestore).
+  # No Secret Manager required — keeps deploys from failing on secret permissions.
 
   - variable: PLAID_ENV
     value: sandbox

@@ -7,23 +7,23 @@ import {
 } from "@/lib/plaid";
 
 export async function GET() {
-  return NextResponse.json({ configured: isPlaidConfigured() });
+  return NextResponse.json({ configured: await isPlaidConfigured() });
 }
 
 export async function POST() {
-  if (!isPlaidConfigured()) {
+  if (!(await isPlaidConfigured())) {
     return NextResponse.json(
       {
         error: "Plaid is not configured",
         message:
-          "Add PLAID_CLIENT_ID and PLAID_SECRET to your .env file. Get free sandbox keys at https://dashboard.plaid.com",
+          "Add your Plaid keys in Settings → Bank Linking, or in .env for local dev. Get sandbox keys at https://dashboard.plaid.com",
       },
       { status: 503 }
     );
   }
 
   try {
-    const plaid = getPlaidClient();
+    const plaid = await getPlaidClient();
     const response = await plaid.linkTokenCreate({
       user: { client_user_id: "money-command-user" },
       client_name: "Money Command",
@@ -53,7 +53,7 @@ export async function POST() {
         error: "Failed to create link token",
         message:
           plaidMessage ||
-          "Check that PLAID_CLIENT_ID and PLAID_SECRET are correct sandbox keys from dashboard.plaid.com",
+          "Check that your Plaid sandbox keys are correct in Settings → Bank Linking",
       },
       { status: 500 }
     );

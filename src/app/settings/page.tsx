@@ -19,9 +19,9 @@ export default async function SettingsPage({
   const params = await searchParams;
   const data = await getSettingsData();
 
-  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals"];
+  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals", "bank-linking"];
   const initialTab = validTabs.includes(params.tab ?? "")
-    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals")
+    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals" | "bank-linking")
     : "categories";
 
   return (

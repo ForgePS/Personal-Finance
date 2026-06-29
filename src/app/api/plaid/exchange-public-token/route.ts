@@ -4,7 +4,7 @@ import { getPlaidClient, isPlaidConfigured } from "@/lib/plaid";
 import { syncPlaidItem } from "@/lib/plaid-sync";
 
 export async function POST(request: NextRequest) {
-  if (!isPlaidConfigured()) {
+  if (!(await isPlaidConfigured())) {
     return NextResponse.json({ error: "Plaid is not configured" }, { status: 503 });
   }
 
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const plaid = getPlaidClient();
+    const plaid = await getPlaidClient();
     const exchange = await plaid.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = exchange.data;
 

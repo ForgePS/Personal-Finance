@@ -7,21 +7,20 @@ import {
   type AccountSubtype,
   type AccountType as PlaidAccountType,
 } from "plaid";
+import { getPlaidCredentials, isPlaidConfiguredAsync } from "@/lib/plaid-config";
 
-export function isPlaidConfigured(): boolean {
-  return Boolean(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET);
-}
+export { isPlaidConfiguredAsync as isPlaidConfigured };
 
-export function getPlaidClient(): PlaidApi {
-  if (!isPlaidConfigured()) {
-    throw new Error("Plaid is not configured. Add PLAID_CLIENT_ID and PLAID_SECRET to your .env file.");
+export async function getPlaidClient(): Promise<PlaidApi> {
+  const creds = await getPlaidCredentials();
+  if (!creds) {
+    throw new Error("Plaid is not configured. Add keys in Settings → Bank Linking or .env locally.");
   }
 
-  const env = process.env.PLAID_ENV || "sandbox";
   const basePath =
-    env === "production"
+    creds.env === "production"
       ? PlaidEnvironments.production
-      : env === "development"
+      : creds.env === "development"
         ? PlaidEnvironments.development
         : PlaidEnvironments.sandbox;
 
@@ -29,8 +28,8 @@ export function getPlaidClient(): PlaidApi {
     basePath,
     baseOptions: {
       headers: {
-        "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID!,
-        "PLAID-SECRET": process.env.PLAID_SECRET!,
+        "PLAID-CLIENT-ID": creds.clientId,
+        "PLAID-SECRET": creds.secret,
       },
     },
   });
@@ -72,7 +71,5 @@ export function mapPlaidAccountIcon(
 }
 
 export function convertPlaidAmount(amount: number): number {
-  // Plaid: positive = money out, negative = money in
-  // Money Command: positive = income, negative = expense
   return -amount;
 }

@@ -16,7 +16,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
 
   if (!item) throw new Error("Bank connection not found");
 
-  const plaid = getPlaidClient();
+  const plaid = await getPlaidClient();
 
   const accountsResponse = await plaid.accountsGet({
     access_token: item.accessToken,
@@ -159,7 +159,7 @@ export async function disconnectBank(plaidItemRecordId: string) {
   if (!item) throw new Error("Bank connection not found");
 
   try {
-    const plaid = getPlaidClient();
+    const plaid = await getPlaidClient();
     await plaid.itemRemove({ access_token: item.accessToken });
   } catch {
     // Item may already be removed on Plaid's side

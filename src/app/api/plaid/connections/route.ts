@@ -3,7 +3,7 @@ import { syncPlaidItem, getConnectedBanks } from "@/lib/plaid-sync";
 import { isPlaidConfigured } from "@/lib/plaid";
 
 export async function GET() {
-  if (!isPlaidConfigured()) {
+  if (!(await isPlaidConfigured())) {
     return NextResponse.json({ configured: false, items: [] });
   }
 
@@ -12,7 +12,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isPlaidConfigured()) {
+  if (!(await isPlaidConfigured())) {
     return NextResponse.json({ error: "Plaid is not configured" }, { status: 503 });
   }
 

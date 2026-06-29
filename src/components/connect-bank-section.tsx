@@ -183,15 +183,11 @@ export function ConnectBankSection() {
             <div>
               <p className="font-medium">Plaid setup required</p>
               <p className="mt-1 text-amber-800">
-                To connect real banks, add your Plaid API keys to <code className="rounded bg-amber-100 px-1">.env</code>:
-              </p>
-              <pre className="mt-2 overflow-x-auto rounded-lg bg-amber-100/50 p-3 text-xs">
-{`PLAID_CLIENT_ID=your_client_id
-PLAID_SECRET=your_sandbox_secret
-PLAID_ENV=sandbox`}
-              </pre>
-              <p className="mt-2 text-amber-800">
-                Get free sandbox keys at{" "}
+                Add your Plaid sandbox keys in{" "}
+                <a href="/settings?tab=bank-linking" className="font-medium underline">
+                  Settings → Bank Linking
+                </a>
+                . Get free keys at{" "}
                 <a
                   href="https://dashboard.plaid.com/signup"
                   target="_blank"
@@ -200,7 +196,7 @@ PLAID_ENV=sandbox`}
                 >
                   dashboard.plaid.com
                 </a>
-                . In sandbox mode, use credentials like <strong>user_good</strong> / <strong>pass_good</strong>.
+                . Sandbox login: <strong>user_good</strong> / <strong>pass_good</strong>
               </p>
             </div>
           </div>

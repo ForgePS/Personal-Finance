@@ -27,7 +27,9 @@ import {
   Target,
   Plus,
   Pencil,
+  KeyRound,
 } from "lucide-react";
+import { BankLinkingSettings } from "@/components/bank-linking-settings";
 import { isLiability } from "@/lib/constants";
 
 const TABS = [
@@ -36,6 +38,7 @@ const TABS = [
   { id: "pay-schedules", label: "Pay Schedules", icon: Briefcase },
   { id: "accounts", label: "Accounts", icon: Landmark },
   { id: "goals", label: "Goals", icon: Target },
+  { id: "bank-linking", label: "Bank Linking", icon: KeyRound },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -252,6 +255,8 @@ export function SettingsPageClient({
           </div>
         </Card>
       )}
+
+      {tab === "bank-linking" && <BankLinkingSettings />}
 
       {tab === "goals" && (
         <Card>
