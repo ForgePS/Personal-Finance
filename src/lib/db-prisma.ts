@@ -40,7 +40,13 @@ function createPrismaClient() {
 
 function getPrismaClient() {
   const cached = globalForPrisma.prisma;
-  if (cached && "envelopePool" in cached && "plaidItem" in cached) {
+  if (
+    cached &&
+    "envelopePool" in cached &&
+    "plaidItem" in cached &&
+    "paySchedule" in cached &&
+    "scheduledExpense" in cached
+  ) {
     return cached;
   }
   const client = createPrismaClient();

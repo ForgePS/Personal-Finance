@@ -21,6 +21,62 @@ enum CategoryType {
   EXPENSE
 }
 
+enum ScheduleFrequency {
+  WEEKLY
+  BIWEEKLY
+  SEMIMONTHLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+model PaySchedule {
+  id                String            @id @default(cuid())
+  name              String
+  amount            Float
+  frequency         ScheduleFrequency
+  dayOfWeek         Int?              // 0=Sun .. 6=Sat (weekly/biweekly)
+  dayOfMonth        Int?              // 1-31 (monthly)
+  secondDayOfMonth  Int?              // for semimonthly (e.g. 15)
+  customIntervalDays Int?             // for CUSTOM frequency
+  startDate         DateTime
+  endDate           DateTime?
+  categoryId        String?
+  category          Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId         String?
+  account           Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  color             String            @default("#22c55e")
+  icon              String            @default("briefcase")
+  notes             String?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model ScheduledExpense {
+  id                String            @id @default(cuid())
+  name              String
+  amount            Float
+  frequency         ScheduleFrequency
+  dayOfWeek         Int?
+  dayOfMonth        Int?
+  secondDayOfMonth  Int?
+  customIntervalDays Int?
+  startDate         DateTime
+  endDate           DateTime?
+  categoryId        String?
+  category          Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId         String?
+  account           Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  color             String            @default("#f97316")
+  icon              String            @default("calendar")
+  notes             String?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
 model Account {
   id              String      @id @default(cuid())
   name            String
@@ -40,6 +96,8 @@ model Account {
   updatedAt       DateTime    @updatedAt
   transactions    Transaction[]
   goals           Goal[]
+  paySchedules    PaySchedule[]
+  scheduledExpenses ScheduledExpense[]
 }
 
 model PlaidItem {
@@ -68,6 +126,8 @@ model Category {
   transactions Transaction[]
   budgets      Budget[]
   envelopes    Envelope[]
+  paySchedules PaySchedule[]
+  scheduledExpenses ScheduledExpense[]
 }
 
 model Transaction {

@@ -10,6 +10,8 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   await prisma.envelopeTransfer.deleteMany();
+  await prisma.paySchedule.deleteMany();
+  await prisma.scheduledExpense.deleteMany();
   await prisma.envelope.deleteMany();
   await prisma.envelopePool.deleteMany();
   await prisma.transaction.deleteMany();
@@ -236,8 +238,85 @@ async function main() {
     },
   });
 
+  await prisma.paySchedule.create({
+    data: {
+      name: "Bi-weekly Paycheck",
+      amount: 2600,
+      frequency: "BIWEEKLY",
+      dayOfWeek: 5,
+      startDate: subMonths(now, 2),
+      categoryId: salary.id,
+      accountId: checking.id,
+      color: "#22c55e",
+      notes: "Primary salary from Acme Corp",
+    },
+  });
+
+  await prisma.paySchedule.create({
+    data: {
+      name: "Freelance Retainer",
+      amount: 850,
+      frequency: "MONTHLY",
+      dayOfMonth: 15,
+      startDate: subMonths(now, 1),
+      categoryId: freelance.id,
+      accountId: checking.id,
+      color: "#14b8a6",
+    },
+  });
+
+  await prisma.scheduledExpense.create({
+    data: {
+      name: "Rent",
+      amount: 2200,
+      frequency: "MONTHLY",
+      dayOfMonth: 1,
+      startDate: subMonths(now, 6),
+      categoryId: housing.id,
+      accountId: checking.id,
+      color: "#6366f1",
+    },
+  });
+
+  await prisma.scheduledExpense.create({
+    data: {
+      name: "Electric Bill",
+      amount: 156,
+      frequency: "MONTHLY",
+      dayOfMonth: 12,
+      startDate: subMonths(now, 6),
+      categoryId: utilities.id,
+      color: "#eab308",
+    },
+  });
+
+  await prisma.scheduledExpense.create({
+    data: {
+      name: "Netflix",
+      amount: 15.99,
+      frequency: "MONTHLY",
+      dayOfMonth: 5,
+      startDate: subMonths(now, 3),
+      categoryId: subscriptions.id,
+      color: "#ec4899",
+    },
+  });
+
+  await prisma.scheduledExpense.create({
+    data: {
+      name: "Car Insurance",
+      amount: 142,
+      frequency: "SEMIMONTHLY",
+      dayOfMonth: 1,
+      secondDayOfMonth: 15,
+      startDate: subMonths(now, 4),
+      categoryId: transport.id,
+      color: "#3b82f6",
+    },
+  });
+
   console.log("Seed completed successfully!");
-  console.log(`Created ${5} accounts, ${incomeCategories.length + expenseCategories.length} categories, ${transactions.length} transactions, ${envelopeCategories.length} envelopes`);
+  console.log(`Created ${5} accounts, ${incomeCategories.length + expenseCategories.length} categories, ${transactions.length} transactions, ${envelopeCategories.length} envelopes, 2 pay schedules, 4 scheduled expenses`);
 }
 
 main()
