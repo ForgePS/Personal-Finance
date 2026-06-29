@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPlanningData } from "@/lib/planning-service";
 import { PlanningPageClient } from "@/components/planning-page-client";
-import { getMonthKey } from "@/lib/utils";
+import { getMonthKey, toIsoString, toIsoStringRequired } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Planning | Money Command",
@@ -37,13 +37,13 @@ export default async function PlanningPage({
       monthKey={data.monthKey}
       paySchedules={data.paySchedules.map((s) => ({
         ...s,
-        startDate: s.startDate.toISOString(),
-        endDate: s.endDate?.toISOString() ?? null,
+        startDate: toIsoStringRequired(s.startDate),
+        endDate: toIsoString(s.endDate),
       }))}
       scheduledExpenses={data.scheduledExpenses.map((s) => ({
         ...s,
-        startDate: s.startDate.toISOString(),
-        endDate: s.endDate?.toISOString() ?? null,
+        startDate: toIsoStringRequired(s.startDate),
+        endDate: toIsoString(s.endDate),
       }))}
       calendar={{
         totalIncome: data.calendar.totalIncome,

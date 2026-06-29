@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getEnvelopeData } from "@/lib/envelope-service";
 import { EnvelopesPageClient } from "@/components/envelopes-page-client";
+import { toIsoStringRequired } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Envelopes | Money Command",
@@ -14,12 +15,12 @@ export default async function EnvelopesPage() {
 
   return (
     <EnvelopesPageClient
-      month={data.month.toISOString()}
+      month={toIsoStringRequired(data.month)}
       pool={data.pool}
       envelopes={data.envelopes}
       recentTransfers={data.recentTransfers.map((t) => ({
         ...t,
-        createdAt: t.createdAt.toISOString(),
+        createdAt: toIsoStringRequired(t.createdAt),
       }))}
       overspentCount={data.overspentCount}
     />

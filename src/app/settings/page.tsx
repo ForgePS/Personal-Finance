@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getSettingsData } from "@/lib/settings-service";
 import { SettingsPageClient } from "@/components/settings-page-client";
+import { toIsoString, toIsoStringRequired } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Settings | Money Command",
@@ -31,17 +32,17 @@ export default async function SettingsPage({
         accounts={data.accounts}
         goals={data.goals.map((g) => ({
           ...g,
-          targetDate: g.targetDate?.toISOString() ?? null,
+          targetDate: toIsoString(g.targetDate),
         }))}
         paySchedules={data.paySchedules.map((s) => ({
           ...s,
-          startDate: s.startDate.toISOString(),
-          endDate: s.endDate?.toISOString() ?? null,
+          startDate: toIsoStringRequired(s.startDate),
+          endDate: toIsoString(s.endDate),
         }))}
         knownExpenses={data.scheduledExpenses.map((s) => ({
           ...s,
-          startDate: s.startDate.toISOString(),
-          endDate: s.endDate?.toISOString() ?? null,
+          startDate: toIsoStringRequired(s.startDate),
+          endDate: toIsoString(s.endDate),
         }))}
       />
     </Suspense>

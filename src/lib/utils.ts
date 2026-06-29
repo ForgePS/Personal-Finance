@@ -64,3 +64,15 @@ export function parseMonthKey(key: string): Date {
   const [year, month] = key.split("-").map(Number);
   return new Date(year, month - 1, 1);
 }
+
+/** Normalize Date or ISO string from Firestore/Prisma for serialization */
+export function toIsoString(value: Date | string | null | undefined): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  return value.toISOString();
+}
+
+export function toIsoStringRequired(value: Date | string): string {
+  if (typeof value === "string") return value;
+  return value.toISOString();
+}
