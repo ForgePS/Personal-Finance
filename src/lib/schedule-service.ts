@@ -261,10 +261,41 @@ export function getScheduleOccurrencesInRange(
 export function buildMonthCalendar(
   paySchedules: ScheduleInput[],
   scheduledExpenses: ScheduleInput[],
-  month: Date
+  month: Date,
+  // Map of occurrenceKey -> adjusted date key (YYYY-MM-DD) for approved reschedules.
+  adjustments?: Map<string, string>
 ) {
   const activePay = paySchedules.map(normalizeSchedule).filter((s) => s.isActive !== false);
   const activeExpenses = scheduledExpenses.map(normalizeSchedule).filter((s) => s.isActive !== false);
+
+  const monthStart = startOfMonth(month);
+  const monthEnd = endOfMonth(month);
+
+  const applyAdjustment = (occ: CalendarOccurrence): CalendarOccurrence => {
+    const adjustedKey = adjustments?.get(occ.id);
+    if (!adjustedKey) return occ;
+    return { ...occ, date: parseLocalDate(adjustedKey) };
+  };
+  const inMonth = (occ: CalendarOccurrence) =>
+    !isBefore(occ.date, monthStart) && !isAfter(occ.date, monthEnd);
+
+  if (adjustments && adjustments.size > 0) {
+    // Generate across neighboring months so a rescheduled occurrence can move
+    // into or out of the displayed month.
+    const windowStart = startOfMonth(addMonths(month, -1));
+    const windowEnd = endOfMonth(addMonths(month, 1));
+
+    const incomeOccurrences = activePay
+      .flatMap((s) => getScheduleOccurrencesInRange(s, windowStart, windowEnd, "income"))
+      .map(applyAdjustment)
+      .filter(inMonth);
+    const expenseOccurrences = activeExpenses
+      .flatMap((s) => getScheduleOccurrencesInRange(s, windowStart, windowEnd, "expense"))
+      .map(applyAdjustment)
+      .filter(inMonth);
+
+    return assembleCalendar(month, incomeOccurrences, expenseOccurrences);
+  }
 
   const incomeOccurrences = activePay.flatMap((s) =>
     getScheduleOccurrencesInMonth(s, month, "income")
@@ -273,6 +304,14 @@ export function buildMonthCalendar(
     getScheduleOccurrencesInMonth(s, month, "expense")
   );
 
+  return assembleCalendar(month, incomeOccurrences, expenseOccurrences);
+}
+
+function assembleCalendar(
+  month: Date,
+  incomeOccurrences: CalendarOccurrence[],
+  expenseOccurrences: CalendarOccurrence[]
+) {
   const all = [...incomeOccurrences, ...expenseOccurrences].sort(
     (a, b) => a.date.getTime() - b.date.getTime()
   );
