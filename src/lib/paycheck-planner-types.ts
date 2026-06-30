@@ -82,9 +82,17 @@ export interface ScheduleLinkTarget {
   type: "income" | "expense";
 }
 
+export interface PlannerAccountOption {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+}
+
 export interface PaycheckPlannerData {
   accountId: string | null;
   accountName: string | null;
+  accounts: PlannerAccountOption[];
   rangeStart: string;
   rangeEnd: string;
   startingBalance: number;

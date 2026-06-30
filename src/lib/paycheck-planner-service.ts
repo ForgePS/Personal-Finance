@@ -311,10 +311,24 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
     }
   }
 
+  // A future-dated transaction that looks like a scheduled bill/paycheck would
+  // otherwise be counted twice (once as the real transaction, once as the
+  // projected occurrence). Suppress the matching projected occurrence so the
+  // actual transaction is the single source of truth.
+  const softMatchedKeys = new Set<string>();
+
   for (const tx of accountTransactions) {
     const txKey = formatDateKey(tx.date);
     if (txKey <= todayKey) continue;
     if ((tx as { scheduleOccurrenceKey?: string | null }).scheduleOccurrenceKey) continue;
+
+    const match = suggestOccurrenceMatch(
+      tx,
+      occurrenceCandidates.filter((c) => !softMatchedKeys.has(c.occurrenceKey))
+    );
+    if (match) {
+      softMatchedKeys.add(match.occurrenceKey);
+    }
 
     rawEvents.push({
       transactionId: tx.id,
@@ -329,6 +343,18 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
       categoryId: tx.categoryId ?? undefined,
       categoryName: tx.category?.name,
     });
+  }
+
+  // Move soft-matched scheduled occurrences out of the projection (they are
+  // covered by a real transaction) so totals are not double-counted.
+  for (const event of rawEvents) {
+    if (
+      event.kind === "scheduled" &&
+      event.occurrenceKey &&
+      softMatchedKeys.has(event.occurrenceKey)
+    ) {
+      event.isFulfilled = true;
+    }
   }
 
   const projectionEvents = rawEvents.filter((event) => !event.isFulfilled);
@@ -400,6 +426,10 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
 
   const events: PlannerEvent[] = [balanceAnchor];
 
+  // Track how much of each envelope has been consumed by earlier projected
+  // expenses so later expenses compare against the dwindling balance.
+  const projectedSpendByCategory = new Map<string, number>();
+
   for (const event of sorted) {
     const runningBalance = balance;
     const delta = event.type === "income" ? event.amount : -event.amount;
@@ -418,6 +448,16 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
         ? envelopeByCategory.get(event.categoryId)
         : undefined;
 
+    const alreadyProjected =
+      event.type === "expense" && event.categoryId
+        ? projectedSpendByCategory.get(event.categoryId) ?? 0
+        : 0;
+    const envelopeRemaining = envelope ? envelope.remaining - alreadyProjected : null;
+
+    if (event.type === "expense" && event.categoryId && envelope) {
+      projectedSpendByCategory.set(event.categoryId, alreadyProjected + event.amount);
+    }
+
     let status: PlannerEventStatus = "ok";
     if (event.adjustment?.status === "PENDING") {
       status = "pending_move";
@@ -426,8 +466,8 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
       shortfallCount += 1;
     } else if (
       event.type === "expense" &&
-      envelope &&
-      envelope.remaining < event.amount
+      envelopeRemaining != null &&
+      envelopeRemaining < event.amount
     ) {
       status = "envelope_shortfall";
       envelopeShortfallCount += 1;
@@ -439,7 +479,7 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
         runningBalance,
         balance,
         status,
-        envelope?.remaining ?? null,
+        envelopeRemaining,
         envelope?.allocated ?? null
       )
     );
@@ -472,6 +512,12 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
   return {
     accountId: selectedAccountId,
     accountName: selectedAccount?.name ?? null,
+    accounts: accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      balance: a.balance,
+    })),
     rangeStart: todayKey,
     rangeEnd: rangeEndKey,
     startingBalance,

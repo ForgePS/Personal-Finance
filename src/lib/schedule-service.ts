@@ -5,7 +5,6 @@ import {
   endOfMonth,
   isAfter,
   isBefore,
-  isSameDay,
   startOfMonth,
   getDaysInMonth,
 } from "date-fns";
@@ -327,6 +326,3 @@ export function formatFrequencyLabel(schedule: ScheduleInput): string {
   }
 }
 
-export function datesEqual(a: Date, b: Date): boolean {
-  return isSameDay(a, b);
-}
