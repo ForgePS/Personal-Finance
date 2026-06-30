@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { formatCurrency } from "@/lib/utils";
 import { formatFrequencyLabel } from "@/lib/schedule-service";
+import { CollapsibleScheduleSection } from "@/components/collapsible-schedule-section";
 import { cn } from "@/lib/utils";
 import {
   CategoryModal,
@@ -173,26 +174,23 @@ export function SettingsPageClient({
       )}
 
       {tab === "pay-schedules" && (
-        <Card>
-          <div className="mb-4 flex items-center justify-between">
-            <CardHeader
-              title="Pay Schedules"
-              subtitle="Expected income on a recurring schedule"
-            />
-            <Button size="sm" onClick={() => setPayModal("new")}>
-              <Plus className="h-4 w-4" />
-              Add Pay Schedule
-            </Button>
-          </div>
-          {paySchedules.length === 0 ? (
-            <p className="text-sm text-slate-500">No pay schedules yet.</p>
-          ) : (
+        <Card className="p-4">
+          <CollapsibleScheduleSection
+            title="Pay Schedules"
+            subtitle="Expected income on a recurring schedule"
+            items={paySchedules}
+            amountTone="income"
+            defaultOpen={false}
+            emptyMessage="No pay schedules yet."
+            onAdd={() => setPayModal("new")}
+            addLabel="Add Pay Schedule"
+          >
             <ScheduleList
               items={paySchedules}
               type="income"
               onEdit={(s) => setPayModal(s)}
             />
-          )}
+          </CollapsibleScheduleSection>
         </Card>
       )}
 

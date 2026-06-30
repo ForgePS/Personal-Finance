@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatMonthYear, getMonthKey } from "@/lib/utils";
 import { formatFrequencyLabel } from "@/lib/schedule-service";
 import { ScheduleModal, type ScheduleRecord } from "@/components/modals/schedule-modal";
+import { CollapsibleScheduleSection } from "@/components/collapsible-schedule-section";
 import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Plus,
   Pencil,
   TrendingUp,
   TrendingDown,
@@ -302,114 +302,99 @@ export function PlanningPageClient({
           )}
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <div className="mb-4 flex items-center justify-between">
-              <CardHeader title="Pay Schedules" subtitle="Expected income" />
-              <Button
-                size="sm"
-                onClick={() => {
-                  setEditingIncome(null);
-                  setIncomeModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {paySchedules.length === 0 ? (
-                <p className="text-sm text-slate-500">No pay schedules yet.</p>
-              ) : (
-                paySchedules.map((schedule) => (
-                  <button
-                    key={schedule.id}
-                    type="button"
-                    onClick={() => {
-                      setEditingIncome(schedule);
-                      setIncomeModalOpen(true);
-                    }}
-                    className="flex w-full items-center justify-between rounded-xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: schedule.color }}
-                      />
-                      <div>
-                        <p className="font-medium text-slate-900">{schedule.name}</p>
-                        <p className="text-xs text-slate-500">
-                          {formatFrequencyLabel(schedule)}
-                          {!schedule.isActive && " · Paused"}
-                        </p>
-                      </div>
+        <div className="space-y-4">
+          <Card className="p-4">
+            <CollapsibleScheduleSection
+              title="Pay Schedules"
+              subtitle="Expected income"
+              items={paySchedules}
+              amountTone="income"
+              defaultOpen={false}
+              emptyMessage="No pay schedules yet."
+              onAdd={() => {
+                setEditingIncome(null);
+                setIncomeModalOpen(true);
+              }}
+            >
+              {paySchedules.map((schedule) => (
+                <button
+                  key={schedule.id}
+                  type="button"
+                  onClick={() => {
+                    setEditingIncome(schedule);
+                    setIncomeModalOpen(true);
+                  }}
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-left transition-colors hover:bg-slate-50"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: schedule.color }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{schedule.name}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        {formatFrequencyLabel(schedule)}
+                        {!schedule.isActive && " · Paused"}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-emerald-600 tabular-nums">
-                        {formatCurrency(schedule.amount)}
-                      </span>
-                      <Pencil className="h-3.5 w-3.5 text-slate-400" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 pl-2">
+                    <span className="text-sm font-semibold text-emerald-600 tabular-nums">
+                      {formatCurrency(schedule.amount)}
+                    </span>
+                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                </button>
+              ))}
+            </CollapsibleScheduleSection>
           </Card>
 
-          <Card>
-            <div className="mb-4 flex items-center justify-between">
-            <CardHeader
+          <Card className="p-4">
+            <CollapsibleScheduleSection
               title="Known Expenses"
               subtitle="Recurring bills from Settings"
-            />
-              <Button
-                size="sm"
-                onClick={() => {
-                  setEditingExpense(null);
-                  setExpenseModalOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {scheduledExpenses.length === 0 ? (
-                <p className="text-sm text-slate-500">No known expenses yet. Add them in Settings → Known Expenses.</p>
-              ) : (
-                scheduledExpenses.map((expense) => (
-                  <button
-                    key={expense.id}
-                    type="button"
-                    onClick={() => {
-                      setEditingExpense(expense);
-                      setExpenseModalOpen(true);
-                    }}
-                    className="flex w-full items-center justify-between rounded-xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: expense.color }}
-                      />
-                      <div>
-                        <p className="font-medium text-slate-900">{expense.name}</p>
-                        <p className="text-xs text-slate-500">
-                          {formatFrequencyLabel(expense)}
-                          {!expense.isActive && " · Paused"}
-                        </p>
-                      </div>
+              items={scheduledExpenses}
+              amountTone="expense"
+              defaultOpen={false}
+              emptyMessage="No known expenses yet. Add them in Settings → Known Expenses."
+              onAdd={() => {
+                setEditingExpense(null);
+                setExpenseModalOpen(true);
+              }}
+            >
+              {scheduledExpenses.map((expense) => (
+                <button
+                  key={expense.id}
+                  type="button"
+                  onClick={() => {
+                    setEditingExpense(expense);
+                    setExpenseModalOpen(true);
+                  }}
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-100 px-3 py-2 text-left transition-colors hover:bg-slate-50"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: expense.color }}
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{expense.name}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        {formatFrequencyLabel(expense)}
+                        {!expense.isActive && " · Paused"}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-rose-600 tabular-nums">
-                        {formatCurrency(expense.amount)}
-                      </span>
-                      <Pencil className="h-3.5 w-3.5 text-slate-400" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 pl-2">
+                    <span className="text-sm font-semibold text-rose-600 tabular-nums">
+                      {formatCurrency(expense.amount)}
+                    </span>
+                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                </button>
+              ))}
+            </CollapsibleScheduleSection>
           </Card>
         </div>
       </div>
