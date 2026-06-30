@@ -124,7 +124,9 @@ export async function getEnvelopeData(month?: Date) {
     }));
 
   const envelopes: EnvelopeWithStats[] = activeEnvelopes
+    .filter((envelope) => envelope.category != null)
     .map((envelope) => {
+      const category = envelope.category!;
       const spent = spentByCategory[envelope.categoryId] || 0;
       const remaining = envelope.allocated - spent;
       const percentUsed = envelope.allocated > 0 ? (spent / envelope.allocated) * 100 : 0;
@@ -148,10 +150,10 @@ export async function getEnvelopeData(month?: Date) {
         isUnderFunded: budgetAmount != null && envelope.allocated < budgetAmount,
         transactions: transactionsByCategory[envelope.categoryId] ?? [],
         category: {
-          id: envelope.category.id,
-          name: envelope.category.name,
-          icon: envelope.category.icon,
-          color: envelope.category.color,
+          id: category.id,
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
         },
       };
     })

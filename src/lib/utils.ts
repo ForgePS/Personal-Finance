@@ -75,11 +75,12 @@ export function parseMonthKey(key: string): Date {
 }
 
 /** Local calendar date key (YYYY-MM-DD) — avoids UTC shifts from toISOString() */
-export function formatDateKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function formatDateKey(date: Date | string): string {
+  const d = date instanceof Date ? date : parseLocalDate(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 /** Parse date-only strings as local midnight */
