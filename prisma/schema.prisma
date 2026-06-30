@@ -175,6 +175,7 @@ model Transaction {
   merchant           String?
   notes              String?
   isTransfer         Boolean  @default(false)
+  scheduleOccurrenceKey String?
   plaidTransactionId String?  @unique
   createdAt          DateTime @default(now())
 }
