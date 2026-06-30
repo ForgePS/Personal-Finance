@@ -64,11 +64,13 @@ export function ScheduleModal({
   onClose,
   type,
   schedule,
+  defaultStartDate,
 }: {
   isOpen: boolean;
   onClose: () => void;
   type: "income" | "expense";
   schedule?: ScheduleRecord | null;
+  defaultStartDate?: string | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -112,9 +114,21 @@ export function ScheduleModal({
         isActive: schedule.isActive,
       });
     } else {
-      setForm(defaultForm(type));
+      const base = defaultForm(type);
+      if (defaultStartDate) {
+        const date = new Date(`${defaultStartDate}T12:00:00`);
+        setForm({
+          ...base,
+          startDate: defaultStartDate,
+          frequency: "ONCE",
+          dayOfWeek: String(date.getDay()),
+          dayOfMonth: String(date.getDate()),
+        });
+      } else {
+        setForm(base);
+      }
     }
-  }, [isOpen, schedule, type]);
+  }, [isOpen, schedule, type, defaultStartDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

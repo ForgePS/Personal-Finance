@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
+  Plus,
   TrendingUp,
   TrendingDown,
   Wallet,
@@ -69,6 +70,36 @@ export function PlanningPageClient({
   const [editingIncome, setEditingIncome] = useState<ScheduleRecord | null>(null);
   const [editingExpense, setEditingExpense] = useState<ScheduleRecord | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [modalStartDate, setModalStartDate] = useState<string | null>(null);
+
+  const openIncomeModal = (startDate?: string | null) => {
+    setEditingIncome(null);
+    setModalStartDate(startDate ?? null);
+    setIncomeModalOpen(true);
+  };
+
+  const openExpenseModal = (startDate?: string | null) => {
+    setEditingExpense(null);
+    setModalStartDate(startDate ?? null);
+    setExpenseModalOpen(true);
+  };
+
+  const openScheduleForOccurrence = (occurrence: CalendarOccurrence) => {
+    if (occurrence.type === "income") {
+      const schedule = paySchedules.find((item) => item.id === occurrence.scheduleId);
+      if (!schedule) return;
+      setModalStartDate(null);
+      setEditingIncome(schedule);
+      setIncomeModalOpen(true);
+      return;
+    }
+
+    const schedule = scheduledExpenses.find((item) => item.id === occurrence.scheduleId);
+    if (!schedule) return;
+    setModalStartDate(null);
+    setEditingExpense(schedule);
+    setExpenseModalOpen(true);
+  };
 
   const currentMonth = useMemo(() => new Date(`${monthKey}-01T12:00:00`), [monthKey]);
 
@@ -178,7 +209,10 @@ export function PlanningPageClient({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader title="Month Calendar" subtitle="Click a day to see details" />
+            <CardHeader
+              title="Month Calendar"
+              subtitle="Click a day to view details or add income and expenses"
+            />
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                 <div key={d} className="py-2">
@@ -260,18 +294,37 @@ export function PlanningPageClient({
 
           {selectedDay && (
             <Card className="mt-4">
-              <CardHeader
-                title={format(new Date(selectedDay + "T12:00:00"), "EEEE, MMMM d")}
-                subtitle={`${selectedOccurrences.length} scheduled item${
-                  selectedOccurrences.length === 1 ? "" : "s"
-                }`}
-              />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <CardHeader
+                  title={format(new Date(selectedDay + "T12:00:00"), "EEEE, MMMM d")}
+                  subtitle={`${selectedOccurrences.length} scheduled item${
+                    selectedOccurrences.length === 1 ? "" : "s"
+                  }`}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => openIncomeModal(selectedDay)}>
+                    <Plus className="h-4 w-4" />
+                    Add Income
+                  </Button>
+                  <Button size="sm" onClick={() => openExpenseModal(selectedDay)}>
+                    <Plus className="h-4 w-4" />
+                    Add Expense
+                  </Button>
+                </div>
+              </div>
               {selectedOccurrences.length === 0 ? (
-                <p className="text-sm text-slate-500">Nothing scheduled for this day.</p>
+                <p className="text-sm text-slate-500">
+                  Nothing scheduled for this day yet. Add a one-time income or expense above.
+                </p>
               ) : (
                 <div className="divide-y divide-slate-100">
                   {selectedOccurrences.map((occ) => (
-                    <div key={occ.id} className="flex items-center justify-between py-3">
+                    <button
+                      key={occ.id}
+                      type="button"
+                      onClick={() => openScheduleForOccurrence(occ)}
+                      className="flex w-full items-center justify-between py-3 text-left transition-colors hover:bg-slate-50"
+                    >
                       <div className="flex items-center gap-3">
                         <div
                           className="h-3 w-3 rounded-full"
@@ -285,16 +338,19 @@ export function PlanningPageClient({
                           </p>
                         </div>
                       </div>
-                      <p
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          occ.type === "income" ? "text-emerald-600" : "text-rose-600"
-                        )}
-                      >
-                        {occ.type === "income" ? "+" : "-"}
-                        {formatCurrency(occ.amount)}
-                      </p>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <p
+                          className={cn(
+                            "font-semibold tabular-nums",
+                            occ.type === "income" ? "text-emerald-600" : "text-rose-600"
+                          )}
+                        >
+                          {occ.type === "income" ? "+" : "-"}
+                          {formatCurrency(occ.amount)}
+                        </p>
+                        <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -311,16 +367,14 @@ export function PlanningPageClient({
               amountTone="income"
               defaultOpen={false}
               emptyMessage="No pay schedules yet."
-              onAdd={() => {
-                setEditingIncome(null);
-                setIncomeModalOpen(true);
-              }}
+              onAdd={() => openIncomeModal()}
             >
               {paySchedules.map((schedule) => (
                 <button
                   key={schedule.id}
                   type="button"
                   onClick={() => {
+                    setModalStartDate(null);
                     setEditingIncome(schedule);
                     setIncomeModalOpen(true);
                   }}
@@ -358,16 +412,14 @@ export function PlanningPageClient({
               amountTone="expense"
               defaultOpen={false}
               emptyMessage="No known expenses yet. Add them in Settings → Known Expenses."
-              onAdd={() => {
-                setEditingExpense(null);
-                setExpenseModalOpen(true);
-              }}
+              onAdd={() => openExpenseModal()}
             >
               {scheduledExpenses.map((expense) => (
                 <button
                   key={expense.id}
                   type="button"
                   onClick={() => {
+                    setModalStartDate(null);
                     setEditingExpense(expense);
                     setExpenseModalOpen(true);
                   }}
@@ -404,18 +456,22 @@ export function PlanningPageClient({
         onClose={() => {
           setIncomeModalOpen(false);
           setEditingIncome(null);
+          setModalStartDate(null);
         }}
         type="income"
         schedule={editingIncome}
+        defaultStartDate={editingIncome ? null : modalStartDate}
       />
       <ScheduleModal
         isOpen={expenseModalOpen}
         onClose={() => {
           setExpenseModalOpen(false);
           setEditingExpense(null);
+          setModalStartDate(null);
         }}
         type="expense"
         schedule={editingExpense}
+        defaultStartDate={editingExpense ? null : modalStartDate}
       />
     </div>
   );
