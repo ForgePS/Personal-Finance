@@ -3,7 +3,7 @@
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { DynamicIcon } from "./dynamic-icon";
 import { cn } from "@/lib/utils";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Landmark } from "lucide-react";
 
 interface TransactionRowProps {
   id: string;
@@ -14,6 +14,7 @@ interface TransactionRowProps {
   category?: { name: string; color: string; icon: string } | null;
   account?: { name: string; color: string } | null;
   transferAccount?: { name: string; color: string } | null;
+  debtAccount?: { name: string; color: string } | null;
   isTransfer?: boolean;
   onClick?: () => void;
 }
@@ -26,17 +27,19 @@ export function TransactionRow({
   category,
   account,
   transferAccount,
+  debtAccount,
   isTransfer,
   onClick,
 }: TransactionRowProps) {
-  const isIncome = !isTransfer && amount > 0;
+  const isIncome = !isTransfer && !debtAccount && amount > 0;
   const isTransferOut = isTransfer && amount < 0;
+  const isDebtPayment = Boolean(debtAccount) && amount < 0;
 
   const subtitle = isTransfer && account && transferAccount
     ? `${account.name} → ${transferAccount.name}`
-    : [merchant || category?.name || (isTransfer ? "Transfer" : "Uncategorized"), account?.name]
-        .filter(Boolean)
-        .join(" · ");
+    : isDebtPayment && account && debtAccount
+      ? `${category?.name || "Debt payment"} · pays ${debtAccount.name}`
+      : [merchant || category?.name || "Uncategorized", account?.name].filter(Boolean).join(" · ");
 
   return (
     <div
@@ -51,11 +54,15 @@ export function TransactionRow({
         style={{
           backgroundColor: isTransfer
             ? "#6366f120"
-            : `${category?.color || "#6366f1"}20`,
+            : isDebtPayment
+              ? "#f43f5e20"
+              : `${category?.color || "#6366f1"}20`,
         }}
       >
         {isTransfer ? (
           <ArrowRightLeft className="h-5 w-5 text-indigo-600" />
+        ) : isDebtPayment ? (
+          <Landmark className="h-5 w-5 text-rose-600" />
         ) : (
           <DynamicIcon
             name={category?.icon || "tag"}

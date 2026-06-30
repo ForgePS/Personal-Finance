@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TransactionsPageClient } from "@/components/transactions-page-client";
-import { getTransactionAmountForAccount } from "@/lib/transfer-service";
+import { getTransactionDisplayAmountForAccount } from "@/lib/debt-payment-service";
 
 export const metadata: Metadata = {
   title: "Transactions | Money Command",
@@ -20,9 +20,15 @@ export default async function TransactionsPage({
   const [transactions, accountFilter] = await Promise.all([
     db.transaction.findMany({
       where: accountId
-        ? { OR: [{ accountId }, { transferAccountId: accountId }] }
+        ? {
+            OR: [
+              { accountId },
+              { transferAccountId: accountId },
+              { debtAccountId: accountId },
+            ],
+          }
         : undefined,
-      include: { category: true, account: true, transferAccount: true },
+      include: { category: true, account: true, transferAccount: true, debtAccount: true },
       orderBy: { date: "desc" },
       take: 200,
     }),
@@ -40,17 +46,23 @@ export default async function TransactionsPage({
         id: tx.id,
         accountId: tx.accountId,
         transferAccountId: tx.transferAccountId,
+        debtAccountId: tx.debtAccountId,
         isTransfer: tx.isTransfer,
         categoryId: tx.categoryId,
         description: tx.description,
         merchant: tx.merchant,
         notes: tx.notes,
-        amount: accountId ? getTransactionAmountForAccount(tx, accountId) : tx.amount,
+        amount: accountId
+          ? getTransactionDisplayAmountForAccount(tx, accountId)
+          : tx.amount,
         date: tx.date,
         category: tx.category,
         account: tx.account ? { name: tx.account.name, color: tx.account.color } : null,
         transferAccount: tx.transferAccount
           ? { name: tx.transferAccount.name, color: tx.transferAccount.color }
+          : null,
+        debtAccount: tx.debtAccount
+          ? { name: tx.debtAccount.name, color: tx.debtAccount.color }
           : null,
       }))}
       accountFilter={accountFilter}

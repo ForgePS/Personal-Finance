@@ -11,6 +11,7 @@ export interface TransactionListItem {
   id: string;
   accountId: string;
   transferAccountId?: string | null;
+  debtAccountId?: string | null;
   isTransfer?: boolean;
   categoryId?: string | null;
   description: string;
@@ -21,6 +22,7 @@ export interface TransactionListItem {
   category?: { name: string; color: string; icon: string } | null;
   account?: { name: string; color: string } | null;
   transferAccount?: { name: string; color: string } | null;
+  debtAccount?: { name: string; color: string } | null;
 }
 
 export function EditableTransactionList({
@@ -50,14 +52,16 @@ export function EditableTransactionList({
             amount={tx.amount}
             date={tx.date}
             category={tx.category}
-            account={showAccount ? tx.account : tx.isTransfer ? tx.account : undefined}
+            account={showAccount || tx.isTransfer || tx.debtAccountId ? tx.account : undefined}
             transferAccount={tx.isTransfer ? tx.transferAccount : undefined}
+            debtAccount={tx.debtAccountId ? tx.debtAccount : undefined}
             isTransfer={tx.isTransfer}
             onClick={() =>
               setEditing({
                 id: tx.id,
                 accountId: tx.accountId,
                 transferAccountId: tx.transferAccountId,
+                debtAccountId: tx.debtAccountId,
                 isTransfer: tx.isTransfer,
                 categoryId: tx.categoryId,
                 description: tx.description,

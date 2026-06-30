@@ -104,6 +104,7 @@ export default async function DashboardPage() {
                 category={tx.category}
                 account={tx.account}
                 transferAccount={tx.transferAccount}
+                debtAccount={tx.debtAccount}
                 isTransfer={tx.isTransfer}
               />
             ))}

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { updateAccountBalanceFromTransaction } from "@/lib/services";
 import { createTransfer } from "@/lib/transfer-service";
+import {
+  applyDebtPaymentBalance,
+  validateDebtPayment,
+} from "@/lib/debt-payment-service";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -12,7 +16,9 @@ export async function GET(request: NextRequest) {
 
   const filters: Record<string, unknown>[] = [];
   if (accountId) {
-    filters.push({ OR: [{ accountId }, { transferAccountId: accountId }] });
+    filters.push({
+      OR: [{ accountId }, { transferAccountId: accountId }, { debtAccountId: accountId }],
+    });
   }
   if (categoryId) {
     filters.push({ categoryId });
@@ -28,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   const transactions = await db.transaction.findMany({
     where: filters.length > 0 ? { AND: filters } : undefined,
-    include: { category: true, account: true, transferAccount: true },
+    include: { category: true, account: true, transferAccount: true, debtAccount: true },
     orderBy: { date: "desc" },
     take: limit,
   });
@@ -39,7 +45,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  if (body.isTransfer || body.transferAccountId) {
+  if (body.isTransfer) {
     try {
       const transaction = await createTransfer({
         fromAccountId: body.accountId,
@@ -60,11 +66,22 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = parseFloat(body.amount);
+  const debtAccountId = body.debtAccountId || null;
+
+  try {
+    await validateDebtPayment(body.accountId, debtAccountId);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid debt payment" },
+      { status: 400 }
+    );
+  }
 
   const transaction = await db.transaction.create({
     data: {
       accountId: body.accountId,
       categoryId: body.categoryId || null,
+      debtAccountId,
       date: new Date(body.date),
       amount,
       description: body.description,
@@ -72,9 +89,13 @@ export async function POST(request: NextRequest) {
       notes: body.notes || null,
       isTransfer: false,
     },
-    include: { category: true, account: true, transferAccount: true },
+    include: { category: true, account: true, transferAccount: true, debtAccount: true },
   });
 
   await updateAccountBalanceFromTransaction(body.accountId, amount);
+  if (debtAccountId && amount < 0) {
+    await applyDebtPaymentBalance(body.accountId, debtAccountId, amount);
+  }
+
   return NextResponse.json(transaction, { status: 201 });
 }

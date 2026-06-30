@@ -97,6 +97,7 @@ model Account {
   updatedAt       DateTime    @updatedAt
   transactions         Transaction[] @relation("OwnedTransactions")
   linkedTransfers      Transaction[] @relation("TransferTransactions")
+  debtPayments         Transaction[] @relation("DebtPaymentAccount")
   goals           Goal[]
   paySchedules    PaySchedule[]
   scheduledExpenses ScheduledExpense[]
@@ -139,6 +140,8 @@ model Transaction {
   account            Account  @relation("OwnedTransactions", fields: [accountId], references: [id], onDelete: Cascade)
   transferAccountId  String?
   transferAccount    Account? @relation("TransferTransactions", fields: [transferAccountId], references: [id], onDelete: SetNull)
+  debtAccountId      String?
+  debtAccount        Account? @relation("DebtPaymentAccount", fields: [debtAccountId], references: [id], onDelete: SetNull)
   categoryId         String?
   category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   date               DateTime

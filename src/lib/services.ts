@@ -79,7 +79,7 @@ export async function getDashboardData(month?: Date) {
   const recentTransactions = await db.transaction.findMany({
     take: 8,
     orderBy: { date: "desc" },
-    include: { category: true, account: true, transferAccount: true },
+    include: { category: true, account: true, transferAccount: true, debtAccount: true },
   });
 
   const goals = await db.goal.findMany({
@@ -155,7 +155,11 @@ export async function recalculateAccountBalance(accountId: string) {
 
   const transactions = await db.transaction.findMany({
     where: {
-      OR: [{ accountId }, { transferAccountId: accountId, isTransfer: true }],
+      OR: [
+        { accountId },
+        { transferAccountId: accountId, isTransfer: true },
+        { debtAccountId: accountId },
+      ],
     },
   });
 
@@ -166,6 +170,7 @@ export async function recalculateAccountBalance(accountId: string) {
   const transactionSum = transactions.reduce((sum, t) => {
     if (t.accountId === accountId) return sum + t.amount;
     if (t.transferAccountId === accountId && t.isTransfer) return sum - t.amount;
+    if (t.debtAccountId === accountId && t.amount < 0) return sum - t.amount;
     return sum;
   }, 0);
 

@@ -18,7 +18,7 @@ export function TransactionsPageClient({
 }) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "debt">("all");
 
   const filtered = useMemo(() => {
     return initialTransactions.filter((tx) => {
@@ -28,11 +28,11 @@ export function TransactionsPageClient({
         tx.merchant?.toLowerCase().includes(search.toLowerCase()) ||
         tx.category?.name.toLowerCase().includes(search.toLowerCase()) ||
         tx.account?.name.toLowerCase().includes(search.toLowerCase()) ||
-        tx.transferAccount?.name.toLowerCase().includes(search.toLowerCase());
+        tx.debtAccount?.name.toLowerCase().includes(search.toLowerCase());
 
       const matchesFilter =
         filter === "all" ||
-        (filter === "transfer" && tx.isTransfer) ||
+        (filter === "debt" && Boolean(tx.debtAccountId)) ||
         (filter === "income" && !tx.isTransfer && tx.amount > 0) ||
         (filter === "expense" && !tx.isTransfer && tx.amount < 0);
 
@@ -104,7 +104,7 @@ export function TransactionsPageClient({
             />
           </div>
           <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-            {(["all", "income", "expense", "transfer"] as const).map((f) => (
+            {(["all", "income", "expense", "debt"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}

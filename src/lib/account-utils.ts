@@ -29,6 +29,12 @@ export function buildAccountSelectOptions(accounts: AccountOption[]) {
   return options;
 }
 
+export function buildLiabilityAccountOptions(accounts: AccountOption[]) {
+  return accounts
+    .filter((a) => isLiability(a.type))
+    .map((account) => ({ value: account.id, label: account.name }));
+}
+
 export function isAccountOptionHeader(value: string) {
   return value.startsWith("__") && value.endsWith("__");
 }

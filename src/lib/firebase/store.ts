@@ -226,6 +226,11 @@ async function attachIncludes(
         ? await findUnique(COLLECTIONS.accounts, { where: { id: item.transferAccountId } })
         : null;
     }
+    if (include.debtAccount) {
+      result.debtAccount = item.debtAccountId
+        ? await findUnique(COLLECTIONS.accounts, { where: { id: item.debtAccountId } })
+        : null;
+    }
   }
 
   if (collection === COLLECTIONS.budgets && include.category) {

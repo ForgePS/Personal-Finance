@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
-import { getTransactionAmountForAccount } from "@/lib/transfer-service";
+import { getTransactionDisplayAmountForAccount } from "@/lib/debt-payment-service";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { Card } from "@/components/ui/card";
 import { AccountTransactionHistory } from "@/components/account-transaction-history";
@@ -30,19 +30,22 @@ export default async function AccountDetailPage({
   if (!account) notFound();
 
   const transactions = await db.transaction.findMany({
-    where: { OR: [{ accountId: id }, { transferAccountId: id }] },
+    where: {
+      OR: [{ accountId: id }, { transferAccountId: id }, { debtAccountId: id }],
+    },
     orderBy: { date: "desc" },
     take: 50,
-    include: { category: true, account: true, transferAccount: true },
+    include: { category: true, account: true, transferAccount: true, debtAccount: true },
   });
 
   const mappedTransactions = transactions.map((tx) => {
-    const amount = getTransactionAmountForAccount(tx, id);
-    const isIncomingTransfer = tx.isTransfer && tx.transferAccountId === id;
+    const amount = getTransactionDisplayAmountForAccount(tx, id);
+    const isIncomingDebtPayment = tx.debtAccountId === id && tx.amount < 0;
     return {
       id: tx.id,
       accountId: tx.accountId,
       transferAccountId: tx.transferAccountId,
+      debtAccountId: tx.debtAccountId,
       isTransfer: tx.isTransfer,
       categoryId: tx.categoryId,
       description: tx.description,
@@ -51,13 +54,16 @@ export default async function AccountDetailPage({
       amount,
       date: tx.date,
       category: tx.category,
-      account: isIncomingTransfer && tx.account
+      account: isIncomingDebtPayment && tx.account
         ? { name: tx.account.name, color: tx.account.color }
         : tx.account
           ? { name: tx.account.name, color: tx.account.color }
           : null,
       transferAccount: tx.transferAccount
         ? { name: tx.transferAccount.name, color: tx.transferAccount.color }
+        : null,
+      debtAccount: tx.debtAccount
+        ? { name: tx.debtAccount.name, color: tx.debtAccount.color }
         : null,
     };
   });
