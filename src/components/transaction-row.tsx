@@ -16,6 +16,9 @@ interface TransactionRowProps {
   transferAccount?: { name: string; color: string } | null;
   debtAccount?: { name: string; color: string } | null;
   isTransfer?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
   onClick?: () => void;
 }
 
@@ -29,6 +32,9 @@ export function TransactionRow({
   transferAccount,
   debtAccount,
   isTransfer,
+  selectable = false,
+  selected = false,
+  onSelect,
   onClick,
 }: TransactionRowProps) {
   const isIncome = !isTransfer && !debtAccount && amount > 0;
@@ -43,12 +49,29 @@ export function TransactionRow({
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => {
+        if (selectable) {
+          onSelect?.(!selected);
+          return;
+        }
+        onClick?.();
+      }}
       className={cn(
         "flex items-center gap-4 rounded-xl px-3 py-3 transition-colors",
-        onClick && "cursor-pointer hover:bg-slate-50"
+        (onClick || selectable) && "cursor-pointer hover:bg-slate-50",
+        selectable && selected && "bg-indigo-50/60 hover:bg-indigo-50"
       )}
     >
+      {selectable && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelect?.(e.target.checked)}
+          onClick={(e) => e.stopPropagation()}
+          className="h-4 w-4 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          aria-label={`Select ${description}`}
+        />
+      )}
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
         style={{
