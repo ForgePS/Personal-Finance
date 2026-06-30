@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatCompactCurrency, formatCurrency } from "@/lib/utils";
 
 const COLORS = [
   "#6366f1",
@@ -98,31 +99,90 @@ export function SpendingPieChart({
     );
   }
 
+  const total = data.reduce((sum, item) => sum + item.amount, 0);
+
+  const formatAmountAndPercent = (amount: number) => {
+    const percent = total > 0 ? ((amount / total) * 100).toFixed(1) : "0.0";
+    return `${formatCurrency(amount)} (${percent}%)`;
+  };
+
+  const renderSliceLabel = (props: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    percent?: number;
+    value?: number;
+  }) => {
+    const {
+      cx = 0,
+      cy = 0,
+      midAngle = 0,
+      innerRadius = 0,
+      outerRadius = 0,
+      percent = 0,
+      value = 0,
+    } = props;
+    if (percent < 0.06) return null;
+
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={11}
+        fontWeight={600}
+      >
+        <tspan x={x} dy="-0.35em">
+          {formatCompactCurrency(value)}
+        </tspan>
+        <tspan x={x} dy="1.2em">
+          {(percent * 100).toFixed(0)}%
+        </tspan>
+      </text>
+    );
+  };
+
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={100}
+          innerRadius={58}
+          outerRadius={98}
           paddingAngle={3}
           dataKey="amount"
           nameKey="name"
+          label={renderSliceLabel}
+          labelLine={false}
         >
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
+          formatter={(value, name) => [formatAmountAndPercent(Number(value)), name]}
           contentStyle={{
             borderRadius: "12px",
             border: "1px solid #e2e8f0",
           }}
         />
-        <Legend />
+        <Legend
+          formatter={(value) => {
+            const item = data.find((entry) => entry.name === value);
+            return item ? `${value} · ${formatAmountAndPercent(item.amount)}` : value;
+          }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
