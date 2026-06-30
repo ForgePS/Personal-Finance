@@ -55,6 +55,10 @@ export function PaycheckPlannerPageClient({
   const [newDate, setNewDate] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const checkingAccounts = useMemo(
     () => accounts.filter((a) => a.type === "CHECKING" || a.type === "CASH"),
     [accounts]
