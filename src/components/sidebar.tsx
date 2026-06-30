@@ -16,6 +16,7 @@ import {
   Command,
   Mail,
   Wallet,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/envelopes", label: "Envelopes", icon: Mail },
   { href: "/planning", label: "Planning", icon: CalendarDays },
   { href: "/paycheck-planner", label: "Paycheck Planner", icon: Wallet },
+  { href: "/advisor", label: "Advisor", icon: Sparkles },
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cash-flow", label: "Cash Flow", icon: TrendingUp },
