@@ -98,6 +98,42 @@ export function SpendingPieChart({
     );
   }
 
+  const total = data.reduce((sum, item) => sum + item.amount, 0);
+
+  const formatPercent = (amount: number) =>
+    total > 0 ? `${((amount / total) * 100).toFixed(1)}%` : "0%";
+
+  const renderSliceLabel = (props: {
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    percent?: number;
+  }) => {
+    const { cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props;
+    if (percent < 0.05) return null;
+
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight={600}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <ResponsiveContainer width="100%" height={280}>
       <PieChart>
@@ -110,19 +146,29 @@ export function SpendingPieChart({
           paddingAngle={3}
           dataKey="amount"
           nameKey="name"
+          label={renderSliceLabel}
+          labelLine={false}
         >
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
+          formatter={(value, name) => {
+            const amount = Number(value);
+            return [`$${amount.toLocaleString()} (${formatPercent(amount)})`, name];
+          }}
           contentStyle={{
             borderRadius: "12px",
             border: "1px solid #e2e8f0",
           }}
         />
-        <Legend />
+        <Legend
+          formatter={(value) => {
+            const item = data.find((entry) => entry.name === value);
+            return item ? `${value} (${formatPercent(item.amount)})` : value;
+          }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );

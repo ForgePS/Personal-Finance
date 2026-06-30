@@ -8,6 +8,8 @@ import {
   fundPoolFromAccounts,
   reconcileTransaction,
   setEnvelopeBudget,
+  resetEnvelopeMonth,
+  setEnvelopeSpendingStart,
 } from "@/lib/envelope-service";
 import { parseEnvelopeMonthInput, getMonthKey } from "@/lib/utils";
 
@@ -100,6 +102,16 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Transaction and category required" }, { status: 400 });
         }
         data = await reconcileTransaction(body.transactionId, body.categoryId, month);
+        break;
+      }
+      case "reset-month": {
+        data = await resetEnvelopeMonth(month, {
+          spendingStartDate: body.spendingStartDate ?? null,
+        });
+        break;
+      }
+      case "set-spending-start": {
+        data = await setEnvelopeSpendingStart(month, body.spendingStartDate ?? null);
         break;
       }
       default:

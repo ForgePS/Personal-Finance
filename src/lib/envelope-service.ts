@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { getMonthEnd } from "@/lib/utils";
-import { startOfMonth } from "date-fns";
+import { startOfMonth, startOfDay, isBefore } from "date-fns";
 import { isLiability } from "@/lib/constants";
 import { updateAccountBalanceFromTransaction } from "@/lib/services";
 
@@ -49,6 +49,12 @@ function isEnvelopeActive(envelope: { isActive?: boolean }) {
   return envelope.isActive !== false;
 }
 
+function getTransactionStartDate(monthStart: Date, spendingStartDate?: Date | null) {
+  if (!spendingStartDate) return monthStart;
+  const spendingStart = startOfDay(spendingStartDate);
+  return isBefore(spendingStart, monthStart) ? monthStart : spendingStart;
+}
+
 export async function getEnvelopeData(month?: Date) {
   const targetMonth = startOfMonth(month ?? new Date());
   const monthEnd = getMonthEnd(targetMonth);
@@ -72,10 +78,11 @@ export async function getEnvelopeData(month?: Date) {
   });
 
   const activeEnvelopes = existingEnvelopes.filter(isEnvelopeActive);
+  const transactionStart = getTransactionStartDate(targetMonth, pool.spendingStartDate);
 
   const transactions = await db.transaction.findMany({
     where: {
-      date: { gte: targetMonth, lte: monthEnd },
+      date: { gte: transactionStart, lte: monthEnd },
       isTransfer: false,
       amount: { lt: 0 },
     },
@@ -212,6 +219,7 @@ export async function getEnvelopeData(month?: Date) {
       totalBudgeted,
       totalSpent,
       unallocated,
+      spendingStartDate: pool.spendingStartDate,
     },
     envelopes,
     recentTransfers,
@@ -544,6 +552,66 @@ export async function returnToPool(categoryId: string, month: Date, amount: numb
       },
     }),
   ]);
+
+  return getEnvelopeData(targetMonth);
+}
+
+export async function resetEnvelopeMonth(
+  month: Date,
+  options: { spendingStartDate?: Date | string | null } = {}
+) {
+  const targetMonth = startOfMonth(month);
+  const spendingStart =
+    options.spendingStartDate != null && options.spendingStartDate !== ""
+      ? startOfDay(new Date(options.spendingStartDate))
+      : startOfDay(new Date());
+
+  await db.envelopePool.upsert({
+    where: { month: targetMonth },
+    update: {
+      totalFunds: 0,
+      spendingStartDate: spendingStart,
+    },
+    create: {
+      month: targetMonth,
+      totalFunds: 0,
+      spendingStartDate: spendingStart,
+    },
+  });
+
+  await db.envelope.updateMany({
+    where: { month: targetMonth, isActive: true },
+    data: { allocated: 0 },
+  });
+
+  await db.envelopeTransfer.deleteMany({ where: { month: targetMonth } });
+  await db.envelopePoolFunding.deleteMany({ where: { month: targetMonth } });
+
+  return getEnvelopeData(targetMonth);
+}
+
+export async function setEnvelopeSpendingStart(
+  month: Date,
+  spendingStartDate: Date | string | null
+) {
+  const targetMonth = startOfMonth(month);
+
+  let pool = await db.envelopePool.findUnique({ where: { month: targetMonth } });
+  if (!pool) {
+    pool = await db.envelopePool.create({
+      data: { month: targetMonth, totalFunds: 0 },
+    });
+  }
+
+  const spendingStart =
+    spendingStartDate != null && spendingStartDate !== ""
+      ? startOfDay(new Date(spendingStartDate))
+      : null;
+
+  await db.envelopePool.update({
+    where: { id: pool.id },
+    data: { spendingStartDate: spendingStart },
+  });
 
   return getEnvelopeData(targetMonth);
 }
