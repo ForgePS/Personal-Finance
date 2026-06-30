@@ -23,7 +23,12 @@ export default async function EnvelopesPage({
   return (
     <EnvelopesPageClient
       monthKey={getMonthKey(data.month)}
-      pool={data.pool}
+      pool={{
+        ...data.pool,
+        spendingStartDate: data.pool.spendingStartDate
+          ? formatDateKey(data.pool.spendingStartDate)
+          : null,
+      }}
       envelopes={data.envelopes.map((envelope) => ({
         ...envelope,
         transactions: envelope.transactions.map((tx) => ({

@@ -904,3 +904,137 @@ export function EditPoolModal({
     </Modal>
   );
 }
+
+export function ResetEnvelopeMonthModal({
+  isOpen,
+  onClose,
+  monthKey,
+  spendingStartDate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  monthKey: string;
+  spendingStartDate?: string | null;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [spendingStart, setSpendingStart] = useState("");
+  const [mode, setMode] = useState<"reset" | "spending-only">("reset");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setError("");
+    setMode("reset");
+    const today = new Date().toISOString().slice(0, 10);
+    setSpendingStart(spendingStartDate?.slice(0, 10) ?? today);
+  }, [isOpen, spendingStartDate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      mode === "reset" &&
+      !confirm(
+        "Reset this month? Pool funding and envelope allocations will be cleared. Monthly budgets are kept."
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/envelopes/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: mode === "reset" ? "reset-month" : "set-spending-start",
+          month: monthKey,
+          spendingStartDate: spendingStart || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to update envelope month");
+        return;
+      }
+      router.refresh();
+      onClose();
+    } catch {
+      setError("Could not save. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Fresh Start">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2 text-sm text-slate-600">
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
+            <input
+              type="radio"
+              name="resetMode"
+              checked={mode === "reset"}
+              onChange={() => setMode("reset")}
+              className="mt-1 h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              <span className="font-medium text-slate-900">Reset month</span>
+              <span className="mt-1 block text-slate-500">
+                Clear pool funding, envelope allocations, and movement history. Monthly budget
+                targets are kept.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3">
+            <input
+              type="radio"
+              name="resetMode"
+              checked={mode === "spending-only"}
+              onChange={() => setMode("spending-only")}
+              className="mt-1 h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              <span className="font-medium text-slate-900">Only change spending cutoff</span>
+              <span className="mt-1 block text-slate-500">
+                Keep current allocations but ignore transactions before the date below (useful if
+                you set up envelopes mid-month).
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <Input
+          label="Count spending from"
+          type="date"
+          value={spendingStart}
+          onChange={(e) => setSpendingStart(e.target.value)}
+          required
+        />
+
+        {mode === "reset" && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Account balances are not changed — this only resets envelope bookkeeping for this
+            month.
+          </p>
+        )}
+
+        {error && (
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {error}
+          </p>
+        )}
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading} variant={mode === "reset" ? "danger" : "primary"}>
+            {loading ? "Saving..." : mode === "reset" ? "Reset month" : "Update cutoff"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

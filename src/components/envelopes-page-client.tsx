@@ -18,8 +18,9 @@ import {
   FundPoolFromAccountsModal,
   ReconcileEnvelopeModal,
   SetEnvelopeBudgetModal,
+  ResetEnvelopeMonthModal,
 } from "@/components/modals/envelope-modals";
-import { ChevronLeft, ChevronRight, Mail, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, Plus, RotateCcw } from "lucide-react";
 
 interface Transfer {
   id: string;
@@ -63,6 +64,7 @@ interface EnvelopesPageClientProps {
     totalBudgeted: number;
     totalSpent: number;
     unallocated: number;
+    spendingStartDate?: string | null;
   };
   envelopes: EnvelopeData[];
   recentTransfers: Transfer[];
@@ -95,6 +97,7 @@ export function EnvelopesPageClient({
   const [returnModal, setReturnModal] = useState<EnvelopeData | null>(null);
   const [reconcileModal, setReconcileModal] = useState<EnvelopeData | null>(null);
   const [budgetModal, setBudgetModal] = useState<EnvelopeData | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const envelopeOptions = envelopes.map((e) => ({
     categoryId: e.categoryId,
@@ -167,8 +170,26 @@ export function EnvelopesPageClient({
           <Button variant="secondary" size="sm" onClick={() => navigateMonth(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <Button variant="secondary" size="sm" onClick={() => setResetOpen(true)}>
+            <RotateCcw className="h-4 w-4" />
+            Fresh Start
+          </Button>
         </div>
       </div>
+
+      {pool.spendingStartDate && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+          Counting spending from {formatShortDate(pool.spendingStartDate)} onward. Earlier
+          transactions in this month are ignored for envelope tracking.{" "}
+          <button
+            type="button"
+            onClick={() => setResetOpen(true)}
+            className="font-medium underline hover:text-indigo-900"
+          >
+            Change
+          </button>
+        </div>
+      )}
 
       <EnvelopePoolBanner
         totalFunds={pool.totalFunds}
@@ -387,6 +408,13 @@ export function EnvelopesPageClient({
           monthKey={monthKey}
         />
       )}
+
+      <ResetEnvelopeMonthModal
+        isOpen={resetOpen}
+        onClose={() => setResetOpen(false)}
+        monthKey={monthKey}
+        spendingStartDate={pool.spendingStartDate}
+      />
     </div>
   );
 }
