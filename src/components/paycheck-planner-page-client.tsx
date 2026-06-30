@@ -76,6 +76,10 @@ export function PaycheckPlannerPageClient({
     setLinkSelections(defaults);
   }, [initialData]);
 
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const checkingAccounts = useMemo(
     () => accounts.filter((a) => a.type === "CHECKING" || a.type === "CASH"),
     [accounts]
