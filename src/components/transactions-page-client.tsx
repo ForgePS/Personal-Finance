@@ -120,11 +120,14 @@ export function TransactionsPageClient({
           </div>
         </div>
 
-        <p className="mb-3 text-sm text-slate-500">Click any row to edit category or details</p>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">Click any row to edit, or use Select for bulk changes</p>
+        </div>
         <EditableTransactionList
           transactions={filtered}
           showAccount={!accountFilter}
           emptyMessage="No transactions found"
+          enableBulkEdit
         />
       </Card>
 
