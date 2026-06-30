@@ -35,22 +35,49 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
     }
     if (typeof value === "object" && value !== null) {
       const op = value as Record<string, unknown>;
-      if ("gte" in op && "lte" in op) {
-        const d = toDate(item[key]);
-        if (d < toDate(op.gte) || d > toDate(op.lte)) return false;
-        continue;
+
+      // Date/number range comparisons. Each bound is applied independently so
+      // a single-sided range (only gte, only lte, etc.) still works.
+      const isDateBound = (v: unknown) => v instanceof Date || typeof v === "string";
+      const compareValue = (raw: unknown) =>
+        isDateBound(raw) || item[key] instanceof Date ? toDate(item[key]).getTime() : Number(item[key]);
+
+      if ("gte" in op) {
+        const bound = isDateBound(op.gte) ? toDate(op.gte).getTime() : Number(op.gte);
+        if (!(compareValue(op.gte) >= bound)) return false;
       }
-      if ("gt" in op && !(Number(item[key]) > Number(op.gt))) return false;
-      if ("lt" in op && !(Number(item[key]) < Number(op.lt))) return false;
+      if ("lte" in op) {
+        const bound = isDateBound(op.lte) ? toDate(op.lte).getTime() : Number(op.lte);
+        if (!(compareValue(op.lte) <= bound)) return false;
+      }
+      if ("gt" in op) {
+        const bound = isDateBound(op.gt) ? toDate(op.gt).getTime() : Number(op.gt);
+        if (!(compareValue(op.gt) > bound)) return false;
+      }
+      if ("lt" in op) {
+        const bound = isDateBound(op.lt) ? toDate(op.lt).getTime() : Number(op.lt);
+        if (!(compareValue(op.lt) < bound)) return false;
+      }
       if ("in" in op && !(op.in as unknown[]).includes(item[key])) return false;
+      if ("not" in op && item[key] === op.not) return false;
+      if ("equals" in op && item[key] !== op.equals) return false;
+      if ("contains" in op) {
+        const haystack = String(item[key] ?? "").toLowerCase();
+        if (!haystack.includes(String(op.contains).toLowerCase())) return false;
+      }
+      if ("startsWith" in op) {
+        const haystack = String(item[key] ?? "").toLowerCase();
+        if (!haystack.startsWith(String(op.startsWith).toLowerCase())) return false;
+      }
       continue;
     }
     if (value instanceof Date) {
       if (toDate(item[key]).toISOString() !== value.toISOString()) return false;
       continue;
     }
-    // Firestore docs may omit fields that Prisma defaults to false (e.g. isArchived).
-    if (key === "isArchived" && value === false) {
+    // Firestore docs may omit fields that Prisma defaults to false (e.g.
+    // isArchived, isTransfer). A missing field must be treated as that default.
+    if (value === false && (key === "isArchived" || key === "isTransfer")) {
       if (item[key] === true) return false;
       continue;
     }

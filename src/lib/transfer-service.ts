@@ -113,13 +113,3 @@ export async function deleteTransfer(existing: {
     await reverseTransferBalances(existing.accountId, existing.transferAccountId, existing.amount);
   }
 }
-
-export function getTransactionAmountForAccount(
-  tx: { accountId: string; transferAccountId?: string | null; amount: number; isTransfer?: boolean },
-  accountId: string
-) {
-  if (tx.isTransfer && tx.transferAccountId === accountId && tx.accountId !== accountId) {
-    return -tx.amount;
-  }
-  return tx.amount;
-}

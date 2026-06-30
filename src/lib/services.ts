@@ -149,49 +149,6 @@ export async function getBudgetData(month?: Date) {
   });
 }
 
-export async function recalculateAccountBalance(accountId: string) {
-  const account = await db.account.findUnique({ where: { id: accountId } });
-  if (!account) return;
-
-  const transactions = await db.transaction.findMany({
-    where: {
-      OR: [
-        { accountId },
-        { transferAccountId: accountId, isTransfer: true },
-        { debtAccountId: accountId },
-      ],
-    },
-  });
-
-  const baseBalance = account.type === "CHECKING" || account.type === "SAVINGS" || account.type === "INVESTMENT" || account.type === "CASH"
-    ? 0
-    : 0;
-
-  const transactionSum = transactions.reduce((sum, t) => {
-    if (t.accountId === accountId) return sum + t.amount;
-    if (t.transferAccountId === accountId && t.isTransfer) return sum - t.amount;
-    if (t.debtAccountId === accountId && t.amount < 0) return sum - t.amount;
-    return sum;
-  }, 0);
-
-  const seedBalances: Record<string, number> = {};
-  const allAccounts = await db.account.findMany();
-  for (const a of allAccounts) {
-    seedBalances[a.id] = a.balance;
-  }
-
-  const currentStored = seedBalances[accountId] ?? 0;
-  const txOnlySum = transactionSum;
-
-  if (transactions.length > 0) {
-    const initialBalance = currentStored - txOnlySum;
-    await db.account.update({
-      where: { id: accountId },
-      data: { balance: initialBalance + transactionSum },
-    });
-  }
-}
-
 export async function updateAccountBalanceFromTransaction(
   accountId: string,
   amount: number,
