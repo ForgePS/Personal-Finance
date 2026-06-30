@@ -39,7 +39,6 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
       await db.account.update({
         where: { id: existing.id },
         data: {
-          name: plaidAccount.name,
           type,
           balance: accountBalance,
           mask: plaidAccount.mask,
@@ -207,7 +206,11 @@ export async function getAvailableSyncedAccounts(): Promise<AvailableSyncedAccou
   return available;
 }
 
-export async function importSyncedAccount(plaidAccountId: string, plaidItemId: string) {
+export async function importSyncedAccount(
+  plaidAccountId: string,
+  plaidItemId: string,
+  customName?: string | null
+) {
   const item = await db.plaidItem.findUnique({ where: { id: plaidItemId } });
   if (!item) throw new Error("Bank connection not found");
 
@@ -223,12 +226,14 @@ export async function importSyncedAccount(plaidAccountId: string, plaidItemId: s
     plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
   const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
 
+  const displayName = customName?.trim() || plaidAccount.name;
+
   const existing = await db.account.findFirst({ where: { plaidAccountId } });
   if (existing) {
     return db.account.update({
       where: { id: existing.id },
       data: {
-        name: plaidAccount.name,
+        ...(customName?.trim() ? { name: customName.trim() } : {}),
         type,
         institution: item.institutionName,
         balance: accountBalance,
@@ -243,7 +248,7 @@ export async function importSyncedAccount(plaidAccountId: string, plaidItemId: s
 
   return db.account.create({
     data: {
-      name: plaidAccount.name,
+      name: displayName,
       type,
       institution: item.institutionName,
       balance: accountBalance,

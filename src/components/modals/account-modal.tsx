@@ -18,6 +18,7 @@ export interface AccountRecord {
   icon: string;
   isArchived: boolean;
   isLinked: boolean;
+  mask?: string | null;
   plaidItemId?: string | null;
 }
 
@@ -152,7 +153,13 @@ export function AccountModal({
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
+          placeholder="e.g. Primary Checking"
         />
+        {account?.isLinked && (
+          <p className="text-xs text-slate-500">
+            Your custom name is kept when this account syncs from the bank.
+          </p>
+        )}
         <Select
           label="Account Type"
           value={form.type}

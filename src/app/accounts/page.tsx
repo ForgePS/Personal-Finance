@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
-import { AccountCard } from "@/components/account-card";
 import { AccountsHeader } from "@/components/accounts-header";
 import { ConnectBankSection } from "@/components/connect-bank-section";
+import { EditableAccountsGrid } from "@/components/editable-accounts-grid";
 import { Card, CardHeader } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -68,44 +68,40 @@ export default async function AccountsPage() {
       {grouped.assets.length > 0 && (
         <div>
           <CardHeader title="Assets" subtitle="Accounts that grow your net worth" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {grouped.assets.map((account) => (
-              <AccountCard
-                key={account.id}
-                id={account.id}
-                name={account.name}
-                type={account.type}
-                institution={account.institution}
-                balance={account.balance}
-                color={account.color}
-                icon={account.icon}
-                isLinked={account.isLinked}
-                mask={account.mask}
-              />
-            ))}
-          </div>
+          <EditableAccountsGrid
+              accounts={grouped.assets.map((account) => ({
+                id: account.id,
+                name: account.name,
+                type: account.type,
+                institution: account.institution,
+                balance: account.balance,
+                color: account.color,
+                icon: account.icon,
+                isArchived: account.isArchived,
+                isLinked: account.isLinked,
+                mask: account.mask,
+              }))}
+          />
         </div>
       )}
 
       {grouped.liabilities.length > 0 && (
         <div>
           <CardHeader title="Liabilities" subtitle="Debts and obligations" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {grouped.liabilities.map((account) => (
-              <AccountCard
-                key={account.id}
-                id={account.id}
-                name={account.name}
-                type={account.type}
-                institution={account.institution}
-                balance={account.balance}
-                color={account.color}
-                icon={account.icon}
-                isLinked={account.isLinked}
-                mask={account.mask}
-              />
-            ))}
-          </div>
+          <EditableAccountsGrid
+            accounts={grouped.liabilities.map((account) => ({
+              id: account.id,
+              name: account.name,
+              type: account.type,
+              institution: account.institution,
+              balance: account.balance,
+              color: account.color,
+              icon: account.icon,
+              isArchived: account.isArchived,
+              isLinked: account.isLinked,
+              mask: account.mask,
+            }))}
+          />
         </div>
       )}
         </>

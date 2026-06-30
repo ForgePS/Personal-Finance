@@ -103,7 +103,21 @@ export default async function AccountDetailPage({
             </p>
           </div>
         </div>
-        <AccountDetailActions accountId={account.id} />
+        <AccountDetailActions
+          accountId={account.id}
+          account={{
+            id: account.id,
+            name: account.name,
+            type: account.type,
+            institution: account.institution,
+            balance: account.balance,
+            color: account.color,
+            icon: account.icon,
+            isArchived: account.isArchived,
+            isLinked: account.isLinked,
+            plaidItemId: account.plaidItemId,
+          }}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

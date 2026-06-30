@@ -56,15 +56,20 @@ export function AddAccountModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = form.name.trim();
+    if (!trimmedName) return;
+
     setLoading(true);
     try {
       const payload = institutionSelection.plaidAccountId
         ? {
             plaidAccountId: institutionSelection.plaidAccountId,
             plaidItemId: institutionSelection.plaidItemId,
+            name: trimmedName,
           }
         : {
             ...form,
+            name: trimmedName,
             institution: institutionSelection.institution || null,
             plaidItemId: institutionSelection.plaidItemId,
           };
@@ -97,8 +102,11 @@ export function AddAccountModal({
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           required
-          placeholder={usingSyncedAccount ? "Auto-filled from synced account" : "e.g. Primary Checking"}
-          readOnly={usingSyncedAccount}
+          placeholder={
+            usingSyncedAccount
+              ? "e.g. Family Checking (defaults to bank name)"
+              : "e.g. Primary Checking"
+          }
         />
         <Select
           label="Account Type"
@@ -137,7 +145,7 @@ export function AddAccountModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading || (usingSyncedAccount && !form.name)}>
+          <Button type="submit" disabled={loading || !form.name.trim()}>
             {loading ? "Adding..." : "Add Account"}
           </Button>
         </div>

@@ -2,21 +2,41 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
+import { AccountModal, type AccountRecord } from "@/components/modals/account-modal";
 
-export function AccountDetailActions({ accountId }: { accountId: string }) {
-  const [showModal, setShowModal] = useState(false);
+export function AccountDetailActions({
+  accountId,
+  account,
+}: {
+  accountId: string;
+  account: AccountRecord;
+}) {
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   return (
     <>
-      <Button onClick={() => setShowModal(true)}>
-        <Plus className="h-4 w-4" />
-        Add Transaction
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => setShowEditModal(true)}>
+          <Pencil className="h-4 w-4" />
+          Rename
+        </Button>
+        <Button onClick={() => setShowTransactionModal(true)}>
+          <Plus className="h-4 w-4" />
+          Add Transaction
+        </Button>
+      </div>
+
+      <AccountModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        account={account}
+      />
       <AddTransactionModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={showTransactionModal}
+        onClose={() => setShowTransactionModal(false)}
         defaultAccountId={accountId}
       />
     </>

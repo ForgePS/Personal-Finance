@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     try {
       const account = await importSyncedAccount(
         String(body.plaidAccountId),
-        String(body.plaidItemId)
+        String(body.plaidItemId),
+        body.name
       );
       return NextResponse.json(account, { status: 201 });
     } catch (error) {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   const account = await db.account.create({
     data: {
-      name: body.name,
+      name: String(body.name || "").trim() || "Unnamed Account",
       type: body.type,
       institution: body.institution || null,
       balance: parseFloat(body.balance) || 0,
