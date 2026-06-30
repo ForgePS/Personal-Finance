@@ -122,10 +122,6 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
     ])
   );
 
-  const categoryIdByScheduleId = new Map(
-    scheduledExpenses.map((e) => [e.id, e.categoryId ?? null])
-  );
-
   const adjustmentByKey = new Map(
     adjustments.map((a) => [
       a.occurrenceKey,
