@@ -60,6 +60,7 @@ export const COLLECTIONS = {
   plaidItems: "plaidItems",
   paySchedules: "paySchedules",
   scheduledExpenses: "scheduledExpenses",
+  scheduleDateAdjustments: "scheduleDateAdjustments",
 } as const;
 
 export function toDate(value: unknown): Date {

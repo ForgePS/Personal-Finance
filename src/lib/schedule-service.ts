@@ -226,6 +226,39 @@ export function getScheduleOccurrencesInMonth(
   }
 }
 
+export function getScheduleOccurrencesInRange(
+  schedule: ScheduleInput,
+  rangeStart: Date,
+  rangeEnd: Date,
+  type: "income" | "expense"
+): CalendarOccurrence[] {
+  const normalized = normalizeSchedule(schedule);
+  if (normalized.isActive === false) return [];
+
+  const months: Date[] = [];
+  let cursor = startOfMonth(rangeStart);
+  const lastMonth = endOfMonth(rangeEnd);
+
+  while (!isAfter(cursor, lastMonth)) {
+    months.push(cursor);
+    cursor = addMonths(cursor, 1);
+  }
+
+  const seen = new Set<string>();
+  const occurrences: CalendarOccurrence[] = [];
+
+  for (const month of months) {
+    for (const occ of getScheduleOccurrencesInMonth(normalized, month, type)) {
+      if (isBefore(occ.date, rangeStart) || isAfter(occ.date, rangeEnd)) continue;
+      if (seen.has(occ.id)) continue;
+      seen.add(occ.id);
+      occurrences.push(occ);
+    }
+  }
+
+  return occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
 export function buildMonthCalendar(
   paySchedules: ScheduleInput[],
   scheduledExpenses: ScheduleInput[],

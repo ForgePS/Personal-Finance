@@ -319,5 +319,6 @@ export const db = {
   plaidItem: makeModel(COLLECTIONS.plaidItems),
   paySchedule: makeModel(COLLECTIONS.paySchedules),
   scheduledExpense: makeModel(COLLECTIONS.scheduledExpenses),
+  scheduleDateAdjustment: makeModel(COLLECTIONS.scheduleDateAdjustments),
   $transaction: runTransaction,
 };
