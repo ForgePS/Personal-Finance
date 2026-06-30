@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { Repeat } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { CategorySelectField } from "@/components/category-select-field";
+import { ScheduleModal, type SchedulePrefill } from "@/components/modals/schedule-modal";
 import {
   buildAccountSelectOptions,
   buildLiabilityAccountOptions,
@@ -45,6 +47,7 @@ export function EditTransactionModal({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [recurringOpen, setRecurringOpen] = useState(false);
   const [error, setError] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [form, setForm] = useState({
@@ -65,9 +68,33 @@ export function EditTransactionModal({
   const isExpense = form.type === "expense";
   const categoryType = form.type === "income" ? "INCOME" : "EXPENSE";
   const isLegacyTransfer = transaction?.isTransfer && transaction.transferAccountId;
+  const canSetUpRecurring = isExpense && !form.isDebtPayment;
+
+  const recurringPrefill = useMemo<SchedulePrefill>(
+    () => ({
+      name: form.description.trim() || form.merchant.trim() || "Recurring expense",
+      amount: form.amount,
+      categoryId: form.categoryId,
+      accountId: form.accountId,
+      startDate: form.date,
+      notes: [form.merchant.trim(), form.notes.trim()].filter(Boolean).join(" — ") || undefined,
+    }),
+    [
+      form.description,
+      form.merchant,
+      form.amount,
+      form.categoryId,
+      form.accountId,
+      form.date,
+      form.notes,
+    ],
+  );
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setRecurringOpen(false);
+      return;
+    }
     setError("");
     fetch("/api/accounts")
       .then((r) => r.json())
@@ -306,6 +333,30 @@ export function EditTransactionModal({
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
 
+        {canSetUpRecurring && (
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Make this a recurring expense</p>
+                <p className="mt-0.5 text-xs text-slate-600">
+                  Create a scheduled expense from this transaction to track it on the Planning
+                  calendar.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setRecurringOpen(true)}
+                disabled={!form.description.trim() || !form.amount || !form.accountId}
+                className="shrink-0 gap-2"
+              >
+                <Repeat className="h-4 w-4" />
+                Set up recurring
+              </Button>
+            </div>
+          </div>
+        )}
+
         {error && (
           <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
@@ -332,6 +383,13 @@ export function EditTransactionModal({
           </div>
         </div>
       </form>
+
+      <ScheduleModal
+        isOpen={recurringOpen}
+        onClose={() => setRecurringOpen(false)}
+        type="expense"
+        prefill={recurringPrefill}
+      />
     </Modal>
   );
 }
