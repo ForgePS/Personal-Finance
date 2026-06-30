@@ -17,7 +17,7 @@ export default async function TransactionsPage({
 }) {
   const { accountId } = await searchParams;
 
-  const [transactions, accountFilter] = await Promise.all([
+  const [transactions, accountFilter, accounts] = await Promise.all([
     db.transaction.findMany({
       where: accountId
         ? {
@@ -38,6 +38,10 @@ export default async function TransactionsPage({
           select: { id: true, name: true },
         })
       : Promise.resolve(null),
+    db.account.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, type: true },
+    }),
   ]);
 
   return (
@@ -66,6 +70,7 @@ export default async function TransactionsPage({
           : null,
       }))}
       accountFilter={accountFilter}
+      accounts={accounts}
     />
   );
 }

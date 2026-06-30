@@ -1,24 +1,35 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select } from "@/components/ui/input";
 import { EditableTransactionList, type TransactionListItem } from "@/components/editable-transaction-list";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { buildAccountSelectOptions, type AccountOption } from "@/lib/account-utils";
 
 export function TransactionsPageClient({
   initialTransactions,
   accountFilter,
+  accounts,
 }: {
   initialTransactions: TransactionListItem[];
   accountFilter?: { id: string; name: string } | null;
+  accounts: AccountOption[];
 }) {
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "income" | "expense" | "debt">("all");
+  const selectedAccountId = accountFilter?.id ?? "";
+
+  const accountOptions = useMemo(
+    () => [{ value: "", label: "All accounts" }, ...buildAccountSelectOptions(accounts)],
+    [accounts]
+  );
 
   const filtered = useMemo(() => {
     return initialTransactions.filter((tx) => {
@@ -47,6 +58,14 @@ export function TransactionsPageClient({
     .filter((t) => !t.isTransfer && t.amount < 0)
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
+  const handleAccountChange = (accountId: string) => {
+    if (!accountId) {
+      router.push("/transactions");
+      return;
+    }
+    router.push(`/transactions?accountId=${accountId}`);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -62,17 +81,6 @@ export function TransactionsPageClient({
           Add Transaction
         </Button>
       </div>
-
-      {accountFilter && (
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
-            Account: {accountFilter.name}
-            <Link href="/transactions" className="rounded-full p-0.5 hover:bg-indigo-100">
-              <X className="h-3.5 w-3.5" />
-            </Link>
-          </span>
-        </div>
-      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -92,18 +100,27 @@ export function TransactionsPageClient({
       </div>
 
       <Card>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search transactions..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+            <Select
+              label="Account"
+              value={selectedAccountId}
+              onChange={(e) => handleAccountChange(e.target.value)}
+              options={accountOptions}
+              className="sm:w-56"
             />
           </div>
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="flex gap-1 rounded-xl bg-slate-100 p-1 sm:self-end">
             {(["all", "income", "expense", "debt"] as const).map((f) => (
               <button
                 key={f}
