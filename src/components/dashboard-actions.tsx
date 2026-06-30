@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
 import { AddAccountModal } from "@/components/modals/add-account-modal";
 
-export function DashboardActions() {
+export function DashboardActions({ defaultAccountId }: { defaultAccountId?: string }) {
   const [showTransaction, setShowTransaction] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
 
@@ -22,7 +22,11 @@ export function DashboardActions() {
           Add Transaction
         </Button>
       </div>
-      <AddTransactionModal isOpen={showTransaction} onClose={() => setShowTransaction(false)} />
+      <AddTransactionModal
+        isOpen={showTransaction}
+        onClose={() => setShowTransaction(false)}
+        defaultAccountId={defaultAccountId}
+      />
       <AddAccountModal isOpen={showAccount} onClose={() => setShowAccount(false)} />
     </>
   );

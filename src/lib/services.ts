@@ -2,8 +2,21 @@ import { db } from "@/lib/db";
 import { isLiability } from "@/lib/constants";
 import { getMonthEnd, getMonthStart } from "@/lib/utils";
 import { startOfMonth, subMonths } from "date-fns";
+import { accountTransactionWhere } from "@/lib/dashboard-accounts";
+import { getTransactionDisplayAmountForAccount } from "@/lib/debt-payment-service";
 
-export async function getDashboardData(month?: Date) {
+function transactionAmount<T extends {
+  accountId: string;
+  transferAccountId?: string | null;
+  debtAccountId?: string | null;
+  amount: number;
+  isTransfer?: boolean;
+}>(tx: T, accountId?: string | null) {
+  if (!accountId) return tx.amount;
+  return getTransactionDisplayAmountForAccount(tx, accountId);
+}
+
+export async function getDashboardData(month?: Date, accountId?: string | null) {
   const targetMonth = month ?? new Date();
   const monthStart = getMonthStart(targetMonth);
   const monthEnd = getMonthEnd(targetMonth);
@@ -22,30 +35,33 @@ export async function getDashboardData(month?: Date) {
     .reduce((sum, a) => sum + Math.abs(a.balance), 0);
 
   const netWorth = assets - liabilities;
+  const selectedAccount = accountId ? accounts.find((account) => account.id === accountId) : null;
+  const accountBalance = selectedAccount?.balance ?? null;
 
   const monthTransactions = await db.transaction.findMany({
     where: {
       date: { gte: monthStart, lte: monthEnd },
       isTransfer: false,
+      ...(accountId ? accountTransactionWhere(accountId) : {}),
     },
     include: { category: true, account: true },
     orderBy: { date: "desc" },
   });
 
   const income = monthTransactions
-    .filter((t) => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t) => transactionAmount(t, accountId) > 0)
+    .reduce((sum, t) => sum + transactionAmount(t, accountId), 0);
 
   const expenses = monthTransactions
-    .filter((t) => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .filter((t) => transactionAmount(t, accountId) < 0)
+    .reduce((sum, t) => sum + Math.abs(transactionAmount(t, accountId)), 0);
 
   const spendingByCategory = monthTransactions
-    .filter((t) => t.amount < 0 && t.category)
+    .filter((t) => transactionAmount(t, accountId) < 0 && t.category)
     .reduce(
       (acc, t) => {
         const name = t.category!.name;
-        acc[name] = (acc[name] || 0) + Math.abs(t.amount);
+        acc[name] = (acc[name] || 0) + Math.abs(transactionAmount(t, accountId));
         return acc;
       },
       {} as Record<string, number>
@@ -63,10 +79,15 @@ export async function getDashboardData(month?: Date) {
         where: {
           date: { gte: m, lte: mEnd },
           isTransfer: false,
+          ...(accountId ? accountTransactionWhere(accountId) : {}),
         },
       });
-      const inc = txs.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-      const exp = txs.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+      const inc = txs
+        .filter((t) => transactionAmount(t, accountId) > 0)
+        .reduce((s, t) => s + transactionAmount(t, accountId), 0);
+      const exp = txs
+        .filter((t) => transactionAmount(t, accountId) < 0)
+        .reduce((s, t) => s + Math.abs(transactionAmount(t, accountId)), 0);
       return {
         month: m.toLocaleDateString("en-US", { month: "short" }),
         income: inc,
@@ -77,18 +98,23 @@ export async function getDashboardData(month?: Date) {
   );
 
   const recentTransactions = await db.transaction.findMany({
+    where: accountId ? accountTransactionWhere(accountId) : undefined,
     take: 8,
     orderBy: { date: "desc" },
     include: { category: true, account: true, transferAccount: true, debtAccount: true },
   });
 
   const goals = await db.goal.findMany({
+    where: accountId ? { accountId } : undefined,
     orderBy: { targetDate: "asc" },
     include: { account: true },
   });
 
   return {
     accounts,
+    accountId: accountId ?? null,
+    selectedAccount,
+    accountBalance,
     netWorth,
     assets,
     liabilities,
