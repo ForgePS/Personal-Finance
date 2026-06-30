@@ -46,6 +46,7 @@ export interface ScheduleInput {
   icon?: string;
   notes?: string | null;
   isActive?: boolean;
+  priority?: number;
   category?: { name: string; color: string; icon: string } | null;
   account?: { name: string } | null;
 }
@@ -88,6 +89,10 @@ export function parseScheduleInput(body: Record<string, unknown>) {
     icon: body.icon ? String(body.icon) : undefined,
     notes: body.notes != null ? String(body.notes) : null,
     isActive: body.isActive !== false,
+    priority:
+      body.priority != null && body.priority !== ""
+        ? Math.max(1, Math.min(100, Number(body.priority)))
+        : undefined,
   };
 }
 

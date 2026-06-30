@@ -35,6 +35,7 @@ export interface ScheduleRecord {
   icon: string;
   notes?: string | null;
   isActive: boolean;
+  priority?: number;
 }
 
 const INCOME_COLORS = ["#22c55e", "#14b8a6", "#10b981", "#06b6d4", "#3b82f6"];
@@ -56,6 +57,7 @@ function defaultForm(type: "income" | "expense") {
     color: type === "income" ? INCOME_COLORS[0] : EXPENSE_COLORS[0],
     notes: "",
     isActive: true,
+    priority: "50",
   };
 }
 
@@ -112,6 +114,7 @@ export function ScheduleModal({
         color: schedule.color,
         notes: schedule.notes ?? "",
         isActive: schedule.isActive,
+        priority: String(schedule.priority ?? 50),
       });
     } else {
       const base = defaultForm(type);
@@ -148,6 +151,7 @@ export function ScheduleModal({
         accountId: form.accountId || null,
         endDate: form.endDate || null,
         icon: type === "income" ? "briefcase" : "calendar",
+        ...(type === "expense" ? { priority: Number(form.priority) || 50 } : {}),
       };
 
       await fetch(schedule ? `${apiBase}/${schedule.id}` : apiBase, {
@@ -284,6 +288,17 @@ export function ScheduleModal({
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
           rows={2}
         />
+
+        {type === "expense" && (
+          <Input
+            label="Payment priority (1 = essential, 100 = optional)"
+            type="number"
+            min={1}
+            max={100}
+            value={form.priority}
+            onChange={(e) => setForm({ ...form, priority: e.target.value })}
+          />
+        )}
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">Color</label>

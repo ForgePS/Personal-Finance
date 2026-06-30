@@ -32,6 +32,17 @@ enum ScheduleFrequency {
   CUSTOM
 }
 
+enum ScheduleSourceType {
+  INCOME
+  EXPENSE
+}
+
+enum ScheduleAdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model PaySchedule {
   id                String            @id @default(cuid())
   name              String
@@ -74,8 +85,22 @@ model ScheduledExpense {
   icon              String            @default("calendar")
   notes             String?
   isActive          Boolean           @default(true)
+  priority          Int               @default(50)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+}
+
+model ScheduleDateAdjustment {
+  id            String                   @id @default(cuid())
+  sourceType    ScheduleSourceType
+  scheduleId    String
+  occurrenceKey String                   @unique
+  originalDate  DateTime
+  adjustedDate  DateTime
+  status        ScheduleAdjustmentStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
 }
 
 model Account {

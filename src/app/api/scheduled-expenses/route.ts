@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       icon: input.icon,
       notes: input.notes,
       isActive: input.isActive,
+      ...(input.priority != null ? { priority: input.priority } : {}),
     },
     include: { category: true, account: true },
   });
