@@ -14,6 +14,8 @@ import {
   Link2,
   Loader2,
   Mail,
+  PiggyBank,
+  Sparkles,
   TrendingDown,
   Unlink,
   Wallet,
@@ -66,6 +68,7 @@ export function PaycheckPlannerPageClient({
   const [newDate, setNewDate] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [linkSelections, setLinkSelections] = useState<Record<string, string>>({});
+  const [allocationOpen, setAllocationOpen] = useState(true);
 
   useEffect(() => {
     setData(initialData);
@@ -167,6 +170,43 @@ export function PaycheckPlannerPageClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      refresh(data.accountId);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApplyAllocation = async (occurrenceKey: string) => {
+    const paycheck = data.allocationPlan?.paychecks.find(
+      (p) => p.occurrenceKey === occurrenceKey
+    );
+    if (!paycheck || !data.accountId) return;
+    if (
+      !confirm(
+        `Move ${formatCurrency(paycheck.totalAllocated)} from this account into envelopes for the current month?`
+      )
+    ) {
+      return;
+    }
+    setActionLoading(`allocate-${occurrenceKey}`);
+    try {
+      const res = await fetch("/api/paycheck-planner/allocate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: data.accountId,
+          note: `Allocation from ${paycheck.name}`,
+          allocations: paycheck.allocations.map((a) => ({
+            categoryId: a.categoryId,
+            amount: a.amount,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        alert(payload.error ?? "Could not fund envelopes. Check the account balance and try again.");
+        return;
+      }
       refresh(data.accountId);
     } finally {
       setActionLoading(null);
@@ -293,6 +333,126 @@ export function PaycheckPlannerPageClient({
             </Link>
           </div>
         </div>
+      )}
+
+      {data.allocationPlan && data.allocationPlan.paychecks.length > 0 && (
+        <Card padding>
+          <button
+            type="button"
+            onClick={() => setAllocationOpen((v) => !v)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">
+                  Envelope allocation per paycheck
+                </h3>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Suggested amount to set aside from each upcoming paycheck, based on your envelope
+                  budgets
+                </p>
+              </div>
+            </div>
+            {allocationOpen ? (
+              <ChevronUp className="h-5 w-5 shrink-0 text-slate-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" />
+            )}
+          </button>
+
+          {allocationOpen && (
+            <div className="mt-4 space-y-4">
+              {data.allocationPlan.coverageRatio < 1 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Your envelope budgets ({formatCurrency(data.allocationPlan.totalMonthlyTargets)}/mo)
+                  exceed your income ({formatCurrency(data.allocationPlan.totalMonthlyIncome)}/mo).
+                  Suggestions are scaled down to fit each paycheck.
+                </div>
+              )}
+
+              {data.allocationPlan.paychecks.map((paycheck) => (
+                <div
+                  key={paycheck.occurrenceKey}
+                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-slate-900">{paycheck.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {formatShortDate(paycheck.date)} · {formatCurrency(paycheck.paycheckAmount)}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleApplyAllocation(paycheck.occurrenceKey)}
+                      disabled={
+                        paycheck.allocations.length === 0 ||
+                        actionLoading === `allocate-${paycheck.occurrenceKey}`
+                      }
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      {actionLoading === `allocate-${paycheck.occurrenceKey}` ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <PiggyBank className="h-3.5 w-3.5" />
+                      )}
+                      Fund envelopes
+                    </Button>
+                  </div>
+
+                  {paycheck.allocations.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      No envelope budgets set yet. Add monthly budgets on the Envelopes page to get
+                      suggestions.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-1.5">
+                      {paycheck.allocations.map((allocation) => (
+                        <div
+                          key={allocation.categoryId}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: allocation.color }}
+                            />
+                            <span className="truncate text-slate-700">{allocation.name}</span>
+                          </div>
+                          <span className="shrink-0 font-medium text-slate-900">
+                            {formatCurrency(allocation.amount)}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-sm">
+                        <span className="font-medium text-slate-700">
+                          Assigned {formatCurrency(paycheck.totalAllocated)}
+                        </span>
+                        <span
+                          className={cn(
+                            "font-medium",
+                            paycheck.leftover >= 0 ? "text-emerald-600" : "text-rose-600"
+                          )}
+                        >
+                          {formatCurrency(paycheck.leftover)} left over
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <p className="text-xs text-slate-500">
+                &quot;Fund envelopes&quot; moves the assigned total from{" "}
+                {data.accountName ?? "the selected account"} into this month&apos;s envelopes. Do
+                this after the paycheck lands.
+              </p>
+            </div>
+          )}
+        </Card>
       )}
 
       {(data.summary.shortfallCount > 0 ||

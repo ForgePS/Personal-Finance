@@ -49,6 +49,33 @@ export interface PlannerEnvelopeSummary {
   totalSpent: number;
 }
 
+export interface EnvelopeAllocationSuggestion {
+  categoryId: string;
+  name: string;
+  color: string;
+  amount: number;
+  monthlyTarget: number;
+}
+
+export interface PaycheckAllocation {
+  occurrenceKey: string;
+  name: string;
+  date: string;
+  paycheckAmount: number;
+  allocations: EnvelopeAllocationSuggestion[];
+  totalAllocated: number;
+  leftover: number;
+  constrained: boolean;
+}
+
+export interface PaycheckAllocationPlan {
+  month: string;
+  totalMonthlyIncome: number;
+  totalMonthlyTargets: number;
+  coverageRatio: number;
+  paychecks: PaycheckAllocation[];
+}
+
 export interface LinkableTransaction {
   id: string;
   description: string;
@@ -102,6 +129,7 @@ export interface PaycheckPlannerData {
   adjustments: PlannerAdjustment[];
   expensePriorities: Array<{ scheduleId: string; name: string; priority: number }>;
   envelopeSummary: PlannerEnvelopeSummary | null;
+  allocationPlan: PaycheckAllocationPlan | null;
   linkableTransactions: LinkableTransaction[];
   linkTargets: ScheduleLinkTarget[];
 }

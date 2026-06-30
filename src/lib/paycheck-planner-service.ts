@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays, startOfDay } from "date-fns";
 import { db } from "@/lib/db";
-import { getEnvelopeData } from "@/lib/envelope-service";
+import { fundEnvelope, fundPoolFromAccounts, getEnvelopeData } from "@/lib/envelope-service";
 import { getScheduleOccurrencesInRange } from "@/lib/schedule-service";
 import type { ScheduleInput } from "@/lib/schedule-types";
 import { formatDateKey } from "@/lib/utils";
@@ -22,7 +22,38 @@ export type {
   PaycheckPlannerSummary,
   LinkableTransaction,
   PlannerEnvelopeSummary,
+  PaycheckAllocationPlan,
+  PaycheckAllocation,
+  EnvelopeAllocationSuggestion,
 } from "@/lib/paycheck-planner-types";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+// Approximate number of times a schedule pays out per month, used to convert a
+// monthly envelope target into a per-paycheck contribution.
+function occurrencesPerMonth(
+  frequency: string,
+  customIntervalDays?: number | null
+): number {
+  switch (frequency) {
+    case "WEEKLY":
+      return 52 / 12;
+    case "BIWEEKLY":
+      return 26 / 12;
+    case "SEMIMONTHLY":
+      return 2;
+    case "MONTHLY":
+      return 1;
+    case "QUARTERLY":
+      return 1 / 3;
+    case "YEARLY":
+      return 1 / 12;
+    case "CUSTOM":
+      return 30 / Math.max(1, customIntervalDays ?? 30);
+    default:
+      return 0; // ONCE
+  }
+}
 
 function matchesAccount(scheduleAccountId: string | null | undefined, accountId: string | null) {
   if (!accountId) return true;
@@ -509,6 +540,83 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
 
   const pendingAdjustmentCount = adjustments.filter((a) => a.status === "PENDING").length;
 
+  // --- Per-paycheck envelope allocation suggestions ---------------------------
+  const totalMonthlyIncome = (paySchedules as ScheduleInput[])
+    .filter((s) => matchesAccount(s.accountId, selectedAccountId))
+    .reduce(
+      (sum, s) =>
+        sum + Number(s.amount) * occurrencesPerMonth(String(s.frequency), s.customIntervalDays),
+      0
+    );
+
+  const envelopeTargets = envelopeData.envelopes
+    .map((e) => ({
+      categoryId: e.categoryId,
+      name: e.category.name,
+      color: e.category.color,
+      monthlyTarget: e.budgetAmount != null && e.budgetAmount > 0 ? e.budgetAmount : e.allocated,
+    }))
+    .filter((e) => e.monthlyTarget > 0);
+
+  const totalMonthlyTargets = envelopeTargets.reduce((s, e) => s + e.monthlyTarget, 0);
+
+  const upcomingPaychecks = (paySchedules as ScheduleInput[])
+    .filter((s) => matchesAccount(s.accountId, selectedAccountId))
+    .flatMap((s) => getScheduleOccurrencesInRange(s, today, rangeEnd, "income"))
+    .filter((occ) => {
+      const key = formatDateKey(occ.date);
+      return key >= todayKey && key <= rangeEndKey;
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const paycheckAllocations = upcomingPaychecks.map((occ) => {
+    const share =
+      totalMonthlyIncome > 0
+        ? occ.amount / totalMonthlyIncome
+        : upcomingPaychecks.length > 0
+          ? 1 / upcomingPaychecks.length
+          : 0;
+
+    let allocations = envelopeTargets.map((e) => ({
+      categoryId: e.categoryId,
+      name: e.name,
+      color: e.color,
+      monthlyTarget: e.monthlyTarget,
+      amount: round2(e.monthlyTarget * share),
+    }));
+
+    let totalAllocated = round2(allocations.reduce((s, a) => s + a.amount, 0));
+    let constrained = false;
+
+    // Never suggest assigning more than the paycheck itself.
+    if (totalAllocated > occ.amount && totalAllocated > 0) {
+      const scale = occ.amount / totalAllocated;
+      allocations = allocations.map((a) => ({ ...a, amount: round2(a.amount * scale) }));
+      totalAllocated = round2(allocations.reduce((s, a) => s + a.amount, 0));
+      constrained = true;
+    }
+
+    return {
+      occurrenceKey: occ.id,
+      name: occ.name,
+      date: formatDateKey(occ.date),
+      paycheckAmount: occ.amount,
+      allocations: allocations.filter((a) => a.amount > 0),
+      totalAllocated,
+      leftover: round2(occ.amount - totalAllocated),
+      constrained,
+    };
+  });
+
+  const allocationPlan = {
+    month: todayKey.slice(0, 7),
+    totalMonthlyIncome: round2(totalMonthlyIncome),
+    totalMonthlyTargets: round2(totalMonthlyTargets),
+    coverageRatio:
+      totalMonthlyTargets > 0 ? round2(totalMonthlyIncome / totalMonthlyTargets) : 1,
+    paychecks: paycheckAllocations,
+  };
+
   return {
     accountId: selectedAccountId,
     accountName: selectedAccount?.name ?? null,
@@ -554,6 +662,7 @@ export async function getPaycheckPlannerData(accountId?: string | null): Promise
       unallocated: envelopeData.pool.unallocated,
       totalSpent: envelopeData.pool.totalSpent,
     },
+    allocationPlan,
     linkableTransactions,
     linkTargets: occurrenceCandidates.map((c) => ({
       occurrenceKey: c.occurrenceKey,
@@ -627,6 +736,34 @@ export async function updateScheduleDateAdjustment(
   });
 
   return updated;
+}
+
+export async function applyPaycheckAllocation(input: {
+  accountId: string;
+  allocations: Array<{ categoryId: string; amount: number }>;
+  note?: string | null;
+}) {
+  const valid = input.allocations.filter((a) => a.categoryId && a.amount > 0);
+  if (valid.length === 0) {
+    throw new Error("No allocations to apply");
+  }
+
+  const total = round2(valid.reduce((s, a) => s + a.amount, 0));
+  const month = new Date();
+
+  // Move the total into this month's pool from the selected account, then push
+  // each suggested amount into its envelope.
+  await fundPoolFromAccounts(
+    month,
+    [{ accountId: input.accountId, amount: total }],
+    input.note ?? "Paycheck allocation"
+  );
+
+  for (const allocation of valid) {
+    await fundEnvelope(allocation.categoryId, month, allocation.amount);
+  }
+
+  return { ok: true, total };
 }
 
 export async function updateExpensePriority(scheduleId: string, priority: number) {
