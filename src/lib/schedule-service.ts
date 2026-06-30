@@ -7,6 +7,7 @@ import {
   isBefore,
   isSameDay,
   startOfMonth,
+  startOfDay,
   getDaysInMonth,
 } from "date-fns";
 import type { CalendarOccurrence, ScheduleFrequency, ScheduleInput } from "./schedule-types";
@@ -224,6 +225,35 @@ export function getScheduleOccurrencesInMonth(
     default:
       return [];
   }
+}
+
+export function getScheduleOccurrencesInRange(
+  schedule: ScheduleInput,
+  rangeStart: Date,
+  rangeEnd: Date,
+  type: "income" | "expense"
+): CalendarOccurrence[] {
+  const normalized = normalizeSchedule(schedule);
+  if (normalized.isActive === false) return [];
+
+  const start = startOfDay(rangeStart);
+  const end = startOfDay(rangeEnd);
+  const occurrences: CalendarOccurrence[] = [];
+
+  let cursor = startOfMonth(start);
+  const lastMonth = endOfMonth(end);
+
+  while (!isAfter(cursor, lastMonth)) {
+    for (const occ of getScheduleOccurrencesInMonth(normalized, cursor, type)) {
+      const occDay = startOfDay(occ.date);
+      if (!isBefore(occDay, start) && !isAfter(occDay, end)) {
+        occurrences.push(occ);
+      }
+    }
+    cursor = addMonths(cursor, 1);
+  }
+
+  return occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 export function buildMonthCalendar(
