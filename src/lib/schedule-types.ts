@@ -1,5 +1,5 @@
 export const SCHEDULE_FREQUENCIES = [
-  { value: "ONCE", label: "Never", description: "One-time payment on the start date" },
+  { value: "ONCE", label: "One time", description: "One-time payment on the start date" },
   { value: "WEEKLY", label: "Weekly", description: "Every week on a set day" },
   { value: "BIWEEKLY", label: "Bi-weekly", description: "Every 2 weeks" },
   { value: "SEMIMONTHLY", label: "Semi-monthly", description: "Twice per month (e.g. 1st & 15th)" },
