@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getTenantId } from "@/lib/tenant-context";
 import { updateAccountBalanceFromTransaction } from "@/lib/services";
 
 export interface TransferInput {
@@ -38,6 +39,7 @@ export async function createTransfer(input: TransferInput) {
 
   const transaction = await db.transaction.create({
     data: {
+      tenantId: getTenantId(),
       accountId: input.fromAccountId,
       transferAccountId: input.toAccountId,
       categoryId: null,

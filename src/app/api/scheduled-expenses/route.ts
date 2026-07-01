@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { parseScheduleInput } from "@/lib/schedule-types";
+import { withAuth } from "@/lib/api-auth";
+import { withTenantData } from "@/lib/tenant-where";
 
-export async function GET() {
+export const GET = withAuth(async () => {
   const expenses = await db.scheduledExpense.findMany({
     orderBy: { name: "asc" },
     include: { category: true, account: true },
   });
   return NextResponse.json(expenses);
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const input = parseScheduleInput(body);
   const expense = await db.scheduledExpense.create({
-    data: {
+    data: withTenantData({
       name: input.name,
       amount: input.amount,
       frequency: input.frequency,
@@ -31,8 +33,8 @@ export async function POST(request: NextRequest) {
       notes: input.notes,
       isActive: input.isActive,
       ...(input.priority != null ? { priority: input.priority } : {}),
-    },
+    }),
     include: { category: true, account: true },
   });
   return NextResponse.json(expense, { status: 201 });
-}
+});

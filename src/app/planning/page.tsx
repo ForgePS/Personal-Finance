@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { getPlanningData } from "@/lib/planning-service";
 import { PlanningPageClient } from "@/components/planning-page-client";
 import { formatDateKey, getMonthKey, toIsoString, toIsoStringRequired } from "@/lib/utils";
@@ -15,6 +16,7 @@ export default async function PlanningPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
+  return withServerAuth(async () => {
   const params = await searchParams;
   const monthKey = params.month ?? getMonthKey(new Date());
   const data = await getPlanningData(monthKey);
@@ -69,4 +71,5 @@ export default async function PlanningPage({
       }}
     />
   );
+  });
 }

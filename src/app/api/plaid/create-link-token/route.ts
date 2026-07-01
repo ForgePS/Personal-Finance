@@ -5,12 +5,13 @@ import {
   PLAID_COUNTRY_CODES,
   PLAID_PRODUCTS,
 } from "@/lib/plaid";
+import { withAuth } from "@/lib/api-auth";
 
-export async function GET() {
+export const GET = withAuth(async () => {
   return NextResponse.json({ configured: await isPlaidConfigured() });
-}
+});
 
-export async function POST() {
+export const POST = withAuth(async (_request, auth) => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json(
       {
@@ -25,7 +26,7 @@ export async function POST() {
   try {
     const plaid = await getPlaidClient();
     const response = await plaid.linkTokenCreate({
-      user: { client_user_id: "money-command-user" },
+      user: { client_user_id: auth.tenantId },
       client_name: "Money Command",
       products: PLAID_PRODUCTS,
       country_codes: PLAID_COUNTRY_CODES,
@@ -58,4 +59,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
+});

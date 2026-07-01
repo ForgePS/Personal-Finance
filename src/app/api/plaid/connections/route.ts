@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncPlaidItem, getConnectedBanks } from "@/lib/plaid-sync";
 import { isPlaidConfigured } from "@/lib/plaid";
+import { withAuth } from "@/lib/api-auth";
 
-export async function GET() {
+export const GET = withAuth(async () => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json({ configured: false, items: [] });
   }
 
   const items = await getConnectedBanks();
   return NextResponse.json({ configured: true, items });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json({ error: "Plaid is not configured" }, { status: 503 });
   }
@@ -30,4 +31,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Sync failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

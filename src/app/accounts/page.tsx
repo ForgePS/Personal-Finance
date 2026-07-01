@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import { isLiability } from "@/lib/constants";
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
+  return withServerAuth(async () => {
   const accounts = await db.account.findMany({
     where: { isArchived: false },
     orderBy: { name: "asc" },
@@ -108,4 +110,5 @@ export default async function AccountsPage() {
       )}
     </div>
   );
+  });
 }

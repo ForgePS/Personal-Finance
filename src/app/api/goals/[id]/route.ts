@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { withAuthContext } from "@/lib/api-auth";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = await request.json();
 
@@ -25,13 +23,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(goal);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   await db.goal.delete({ where: { id } });
   return NextResponse.json({ success: true });
-}
+});

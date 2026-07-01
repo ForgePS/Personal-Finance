@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { withAuthContext } from "@/lib/api-auth";
 import { updateAccountBalanceFromTransaction } from "@/lib/services";
 import { deleteTransfer, updateTransfer } from "@/lib/transfer-service";
 import {
@@ -16,10 +17,7 @@ const transactionInclude = {
   debtAccount: true,
 };
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = await request.json();
 
@@ -136,12 +134,9 @@ export async function PATCH(
   );
 
   return NextResponse.json(transaction);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const existing = await db.transaction.findUnique({ where: { id } });
   if (!existing) {
@@ -164,4 +159,4 @@ export async function DELETE(
   await db.transaction.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}
+});

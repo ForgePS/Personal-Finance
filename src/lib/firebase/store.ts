@@ -1,5 +1,14 @@
 import { getDb, COLLECTIONS, toDate, serializeDates } from "./admin";
+import { getTenantIdOrNull } from "../tenant-context";
 import { randomBytes } from "crypto";
+
+const LEGACY_TENANT_ID = "legacy-tenant";
+
+const TENANT_SCOPED_COLLECTIONS = new Set<string>(
+  Object.values(COLLECTIONS).filter(
+    (c) => c !== COLLECTIONS.tenants && c !== COLLECTIONS.tenantMembers
+  )
+);
 
 function cuid() {
   return randomBytes(12).toString("hex");
@@ -8,16 +17,65 @@ function cuid() {
 type WhereInput = Record<string, unknown>;
 type OrderBy = Record<string, "asc" | "desc"> | Record<string, "asc" | "desc">[];
 
+function scopeWhere(where: WhereInput | undefined, collection: string): WhereInput | undefined {
+  const tenantId = getTenantIdOrNull();
+  if (!tenantId || !TENANT_SCOPED_COLLECTIONS.has(collection)) {
+    return where;
+  }
+  return { ...(where ?? {}), tenantId };
+}
+
+function scopeCreateData(data: Record<string, unknown>, collection: string): Record<string, unknown> {
+  const tenantId = getTenantIdOrNull();
+  if (!tenantId || !TENANT_SCOPED_COLLECTIONS.has(collection)) {
+    return data;
+  }
+  return { ...data, tenantId };
+}
+
 async function getAll<T>(collection: string): Promise<T[]> {
   const snap = await getDb().collection(collection).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as T));
 }
 
 function normalizeWhere(where: WhereInput): WhereInput {
+  if ("tenantId_categoryId_month" in where) {
+    const composite = where.tenantId_categoryId_month as {
+      tenantId: string;
+      categoryId: string;
+      month: Date | string;
+    };
+    const month = toDate(composite.month).toISOString();
+    return { tenantId: composite.tenantId, categoryId: composite.categoryId, month };
+  }
   if ("categoryId_month" in where) {
     const composite = where.categoryId_month as { categoryId: string; month: Date | string };
     const month = toDate(composite.month).toISOString();
     return { categoryId: composite.categoryId, month };
+  }
+  if ("tenantId_month" in where) {
+    const composite = where.tenantId_month as { tenantId: string; month: Date | string };
+    const month = toDate(composite.month).toISOString();
+    return { tenantId: composite.tenantId, month };
+  }
+  if ("tenantId_occurrenceKey" in where) {
+    const composite = where.tenantId_occurrenceKey as { tenantId: string; occurrenceKey: string };
+    return { tenantId: composite.tenantId, occurrenceKey: composite.occurrenceKey };
+  }
+  if ("tenantId_plaidAccountId" in where) {
+    const composite = where.tenantId_plaidAccountId as { tenantId: string; plaidAccountId: string };
+    return { tenantId: composite.tenantId, plaidAccountId: composite.plaidAccountId };
+  }
+  if ("tenantId_itemId" in where) {
+    const composite = where.tenantId_itemId as { tenantId: string; itemId: string };
+    return { tenantId: composite.tenantId, itemId: composite.itemId };
+  }
+  if ("tenantId_plaidTransactionId" in where) {
+    const composite = where.tenantId_plaidTransactionId as {
+      tenantId: string;
+      plaidTransactionId: string;
+    };
+    return { tenantId: composite.tenantId, plaidTransactionId: composite.plaidTransactionId };
   }
   return where;
 }
@@ -85,6 +143,11 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       if (item[key] === false) return false;
       continue;
     }
+    if (key === "tenantId") {
+      const itemTenant = item.tenantId ?? LEGACY_TENANT_ID;
+      if (itemTenant !== value) return false;
+      continue;
+    }
     if (item[key] !== value) return false;
   }
   return true;
@@ -115,8 +178,9 @@ async function findMany<T extends Record<string, unknown>>(
     include?: Record<string, boolean | object>;
   }
 ): Promise<T[]> {
+  const scopedWhere = scopeWhere(opts?.where, collection);
   let items = await getAll<T>(collection);
-  if (opts?.where) items = items.filter((i) => matchesWhere(i, opts.where!));
+  if (scopedWhere) items = items.filter((i) => matchesWhere(i, scopedWhere));
   items = sortItems(items, opts?.orderBy);
   if (opts?.take) items = items.slice(0, opts.take);
 
@@ -151,7 +215,7 @@ async function create<T extends Record<string, unknown>>(
   const id = (opts.data.id as string) || cuid();
   const now = new Date().toISOString();
   const data = serializeDates({
-    ...opts.data,
+    ...scopeCreateData(opts.data, collection),
     id,
     createdAt: opts.data.createdAt ?? now,
     updatedAt: opts.data.updatedAt ?? now,
@@ -202,11 +266,12 @@ async function upsert<T extends Record<string, unknown>>(
     include?: Record<string, boolean | object>;
   }
 ): Promise<T> {
-  const existing = await findFirst(collection, { where: opts.where });
+  const existing = await findFirst(collection, { where: scopeWhere(opts.where, collection) ?? opts.where });
   if (existing) {
     return update(collection, { where: { id: existing.id as string }, data: opts.update, include: opts.include }) as Promise<T>;
   }
-  return create(collection, { data: { ...opts.create, ...opts.where }, include: opts.include }) as Promise<T>;
+  const createData = scopeCreateData({ ...opts.create, ...opts.where }, collection);
+  return create(collection, { data: createData, include: opts.include }) as Promise<T>;
 }
 
 async function attachIncludes(

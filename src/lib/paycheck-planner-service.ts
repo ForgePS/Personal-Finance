@@ -1,5 +1,7 @@
 import { addDays, differenceInCalendarDays, startOfDay } from "date-fns";
 import { db } from "@/lib/db";
+import { getTenantId } from "@/lib/tenant-context";
+import { scheduleAdjustmentUniqueWhere } from "@/lib/tenant-where";
 import { fundEnvelope, fundPoolFromAccounts, getEnvelopeData } from "@/lib/envelope-service";
 import { getScheduleOccurrencesInRange } from "@/lib/schedule-service";
 import type { ScheduleInput } from "@/lib/schedule-types";
@@ -693,7 +695,7 @@ export async function createScheduleDateAdjustment(input: {
   notes?: string | null;
 }) {
   const existing = await db.scheduleDateAdjustment.findUnique({
-    where: { occurrenceKey: input.occurrenceKey },
+    where: scheduleAdjustmentUniqueWhere(input.occurrenceKey),
   });
 
   if (existing) {
@@ -710,6 +712,7 @@ export async function createScheduleDateAdjustment(input: {
 
   return db.scheduleDateAdjustment.create({
     data: {
+      tenantId: getTenantId(),
       sourceType: input.sourceType,
       scheduleId: input.scheduleId,
       occurrenceKey: input.occurrenceKey,

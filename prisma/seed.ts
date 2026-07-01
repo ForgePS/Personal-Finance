@@ -8,10 +8,14 @@ const adapter = new PrismaBetterSqlite3({
 });
 const prisma = new PrismaClient({ adapter });
 
+const TENANT_ID = process.env.DEV_TENANT_ID ?? "seed-tenant";
+
 async function main() {
   await prisma.envelopeTransfer.deleteMany();
   await prisma.paySchedule.deleteMany();
   await prisma.scheduledExpense.deleteMany();
+  await prisma.scheduleDateAdjustment.deleteMany();
+  await prisma.envelopePoolFunding.deleteMany();
   await prisma.envelope.deleteMany();
   await prisma.envelopePool.deleteMany();
   await prisma.transaction.deleteMany();
@@ -19,9 +23,29 @@ async function main() {
   await prisma.goal.deleteMany();
   await prisma.category.deleteMany();
   await prisma.account.deleteMany();
+  await prisma.plaidItem.deleteMany();
+  await prisma.tenantMember.deleteMany();
+  await prisma.tenant.deleteMany();
+
+  await prisma.tenant.create({
+    data: {
+      id: TENANT_ID,
+      name: "Demo Workspace",
+      slug: "demo",
+      members: {
+        create: {
+          userId: "dev-user",
+          email: "dev@moneycommand.local",
+          role: "OWNER",
+        },
+      },
+    },
+  });
+
+  const tenantId = TENANT_ID;
 
   const checking = await prisma.account.create({
-    data: {
+    data: { tenantId, 
       name: "Primary Checking",
       type: "CHECKING",
       institution: "Chase",
@@ -32,7 +56,7 @@ async function main() {
   });
 
   const savings = await prisma.account.create({
-    data: {
+    data: { tenantId, 
       name: "Emergency Fund",
       type: "SAVINGS",
       institution: "Ally Bank",
@@ -43,7 +67,7 @@ async function main() {
   });
 
   const creditCard = await prisma.account.create({
-    data: {
+    data: { tenantId, 
       name: "Sapphire Reserve",
       type: "CREDIT_CARD",
       institution: "Chase",
@@ -54,7 +78,7 @@ async function main() {
   });
 
   const investment = await prisma.account.create({
-    data: {
+    data: { tenantId, 
       name: "Brokerage",
       type: "INVESTMENT",
       institution: "Fidelity",
@@ -65,7 +89,7 @@ async function main() {
   });
 
   const mortgage = await prisma.account.create({
-    data: {
+    data: { tenantId, 
       name: "Mortgage",
       type: "LOAN",
       institution: "Wells Fargo",
@@ -77,49 +101,49 @@ async function main() {
 
   const incomeCategories = await Promise.all([
     prisma.category.create({
-      data: { name: "Salary", type: "INCOME", icon: "briefcase", color: "#22c55e" },
+      data: { tenantId,  name: "Salary", type: "INCOME", icon: "briefcase", color: "#22c55e" },
     }),
     prisma.category.create({
-      data: { name: "Freelance", type: "INCOME", icon: "laptop", color: "#14b8a6" },
+      data: { tenantId,  name: "Freelance", type: "INCOME", icon: "laptop", color: "#14b8a6" },
     }),
     prisma.category.create({
-      data: { name: "Investments", type: "INCOME", icon: "trending-up", color: "#8b5cf6" },
+      data: { tenantId,  name: "Investments", type: "INCOME", icon: "trending-up", color: "#8b5cf6" },
     }),
     prisma.category.create({
-      data: { name: "Other Income", type: "INCOME", icon: "plus-circle", color: "#06b6d4" },
+      data: { tenantId,  name: "Other Income", type: "INCOME", icon: "plus-circle", color: "#06b6d4" },
     }),
   ]);
 
   const expenseCategories = await Promise.all([
     prisma.category.create({
-      data: { name: "Groceries", type: "EXPENSE", icon: "shopping-cart", color: "#22c55e" },
+      data: { tenantId,  name: "Groceries", type: "EXPENSE", icon: "shopping-cart", color: "#22c55e" },
     }),
     prisma.category.create({
-      data: { name: "Dining Out", type: "EXPENSE", icon: "utensils", color: "#f97316" },
+      data: { tenantId,  name: "Dining Out", type: "EXPENSE", icon: "utensils", color: "#f97316" },
     }),
     prisma.category.create({
-      data: { name: "Transportation", type: "EXPENSE", icon: "car", color: "#3b82f6" },
+      data: { tenantId,  name: "Transportation", type: "EXPENSE", icon: "car", color: "#3b82f6" },
     }),
     prisma.category.create({
-      data: { name: "Housing", type: "EXPENSE", icon: "home", color: "#6366f1" },
+      data: { tenantId,  name: "Housing", type: "EXPENSE", icon: "home", color: "#6366f1" },
     }),
     prisma.category.create({
-      data: { name: "Utilities", type: "EXPENSE", icon: "zap", color: "#eab308" },
+      data: { tenantId,  name: "Utilities", type: "EXPENSE", icon: "zap", color: "#eab308" },
     }),
     prisma.category.create({
-      data: { name: "Entertainment", type: "EXPENSE", icon: "film", color: "#ec4899" },
+      data: { tenantId,  name: "Entertainment", type: "EXPENSE", icon: "film", color: "#ec4899" },
     }),
     prisma.category.create({
-      data: { name: "Shopping", type: "EXPENSE", icon: "shopping-bag", color: "#f43f5e" },
+      data: { tenantId,  name: "Shopping", type: "EXPENSE", icon: "shopping-bag", color: "#f43f5e" },
     }),
     prisma.category.create({
-      data: { name: "Health", type: "EXPENSE", icon: "heart-pulse", color: "#ef4444" },
+      data: { tenantId,  name: "Health", type: "EXPENSE", icon: "heart-pulse", color: "#ef4444" },
     }),
     prisma.category.create({
-      data: { name: "Subscriptions", type: "EXPENSE", icon: "repeat", color: "#8b5cf6" },
+      data: { tenantId,  name: "Subscriptions", type: "EXPENSE", icon: "repeat", color: "#8b5cf6" },
     }),
     prisma.category.create({
-      data: { name: "Travel", type: "EXPENSE", icon: "plane", color: "#06b6d4" },
+      data: { tenantId,  name: "Travel", type: "EXPENSE", icon: "plane", color: "#06b6d4" },
     }),
   ]);
 
@@ -153,7 +177,7 @@ async function main() {
   ];
 
   for (const tx of transactions) {
-    await prisma.transaction.create({ data: tx });
+    await prisma.transaction.create({ data: { ...tx, tenantId } });
   }
 
   const budgetCategories = [groceries, dining, transport, entertainment, shopping, health, subscriptions, travel];
@@ -163,7 +187,7 @@ async function main() {
     const month = startOfMonth(subMonths(now, i));
     for (let j = 0; j < budgetCategories.length; j++) {
       await prisma.budget.create({
-        data: {
+        data: { tenantId, 
           categoryId: budgetCategories[j].id,
           amount: budgetAmounts[j],
           month,
@@ -173,7 +197,7 @@ async function main() {
   }
 
   await prisma.goal.create({
-    data: {
+    data: { tenantId, 
       name: "Vacation Fund",
       targetAmount: 5000,
       currentAmount: 2800,
@@ -185,7 +209,7 @@ async function main() {
   });
 
   await prisma.goal.create({
-    data: {
+    data: { tenantId, 
       name: "New Car Down Payment",
       targetAmount: 15000,
       currentAmount: 6200,
@@ -197,7 +221,7 @@ async function main() {
   });
 
   await prisma.goal.create({
-    data: {
+    data: { tenantId, 
       name: "Home Renovation",
       targetAmount: 25000,
       currentAmount: 8500,
@@ -210,7 +234,7 @@ async function main() {
   const monthlyIncome = 6050;
 
   await prisma.envelopePool.create({
-    data: { month: currentMonth, totalFunds: monthlyIncome },
+    data: { tenantId,  month: currentMonth, totalFunds: monthlyIncome },
   });
 
   const envelopeCategories = [
@@ -220,7 +244,7 @@ async function main() {
 
   for (let i = 0; i < envelopeCategories.length; i++) {
     await prisma.envelope.create({
-      data: {
+      data: { tenantId, 
         categoryId: envelopeCategories[i].id,
         month: currentMonth,
         allocated: envelopeAllocations[i],
@@ -229,7 +253,7 @@ async function main() {
   }
 
   await prisma.envelopeTransfer.create({
-    data: {
+    data: { tenantId, 
       month: currentMonth,
       amount: 500,
       fromCategoryId: null,
@@ -239,7 +263,7 @@ async function main() {
   });
 
   await prisma.paySchedule.create({
-    data: {
+    data: { tenantId, 
       name: "Bi-weekly Paycheck",
       amount: 2600,
       frequency: "BIWEEKLY",
@@ -253,7 +277,7 @@ async function main() {
   });
 
   await prisma.paySchedule.create({
-    data: {
+    data: { tenantId, 
       name: "Freelance Retainer",
       amount: 850,
       frequency: "MONTHLY",
@@ -266,7 +290,7 @@ async function main() {
   });
 
   await prisma.scheduledExpense.create({
-    data: {
+    data: { tenantId, 
       name: "Rent",
       amount: 2200,
       frequency: "MONTHLY",
@@ -279,7 +303,7 @@ async function main() {
   });
 
   await prisma.scheduledExpense.create({
-    data: {
+    data: { tenantId, 
       name: "Electric Bill",
       amount: 156,
       frequency: "MONTHLY",
@@ -291,7 +315,7 @@ async function main() {
   });
 
   await prisma.scheduledExpense.create({
-    data: {
+    data: { tenantId, 
       name: "Netflix",
       amount: 15.99,
       frequency: "MONTHLY",
@@ -303,7 +327,7 @@ async function main() {
   });
 
   await prisma.scheduledExpense.create({
-    data: {
+    data: { tenantId, 
       name: "Car Insurance",
       amount: 142,
       frequency: "SEMIMONTHLY",

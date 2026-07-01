@@ -6,8 +6,10 @@ import {
   applyDebtPaymentBalance,
   validateDebtPayment,
 } from "@/lib/debt-payment-service";
+import { withAuth } from "@/lib/api-auth";
+import { withTenantData } from "@/lib/tenant-where";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, auth) => {
   const searchParams = request.nextUrl.searchParams;
   const accountId = searchParams.get("accountId");
   const categoryId = searchParams.get("categoryId");
@@ -40,9 +42,9 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json(transactions);
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
 
   if (body.isTransfer) {
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
 
   const transaction = await db.transaction.create({
-    data: {
+    data: withTenantData({
       accountId: body.accountId,
       categoryId: body.categoryId || null,
       debtAccountId,
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
       merchant: body.merchant || null,
       notes: body.notes || null,
       isTransfer: false,
-    },
+    }),
     include: { category: true, account: true, transferAccount: true, debtAccount: true },
   });
 
@@ -98,4 +100,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(transaction, { status: 201 });
-}
+});

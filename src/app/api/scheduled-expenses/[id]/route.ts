@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { withAuthContext } from "@/lib/api-auth";
 import { parseScheduleInput } from "@/lib/schedule-types";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = await request.json();
   const input = parseScheduleInput(body);
@@ -32,13 +30,10 @@ export async function PATCH(
     include: { category: true, account: true },
   });
   return NextResponse.json(expense);
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   await db.scheduledExpense.delete({ where: { id } });
   return NextResponse.json({ ok: true });
-}
+});

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function GoalsPage() {
+  return withServerAuth(async () => {
   const goals = await db.goal.findMany({
     orderBy: { targetDate: "asc" },
     include: { account: true },
@@ -66,4 +68,5 @@ export default async function GoalsPage() {
       </Card>
     </div>
   );
+  });
 }

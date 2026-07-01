@@ -1,4 +1,8 @@
 import { db } from "@/lib/db";
+import { getTenantId } from "@/lib/tenant-context";
+import {
+  plaidTransactionUniqueWhere,
+} from "@/lib/tenant-where";
 import {
   convertPlaidAmount,
   getPlaidClient,
@@ -48,6 +52,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
     } else {
       await db.account.create({
         data: {
+          tenantId: getTenantId(),
           name: plaidAccount.name,
           type,
           institution: item.institutionName,
@@ -92,7 +97,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
       const merchant = tx.merchant_name || null;
 
       await db.transaction.upsert({
-        where: { plaidTransactionId: tx.transaction_id },
+        where: plaidTransactionUniqueWhere(tx.transaction_id),
         update: {
           amount,
           description,
@@ -100,6 +105,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
           date: new Date(tx.date),
         },
         create: {
+          tenantId: getTenantId(),
           accountId: account.id,
           plaidTransactionId: tx.transaction_id,
           amount,
@@ -248,6 +254,7 @@ export async function importSyncedAccount(
 
   return db.account.create({
     data: {
+      tenantId: getTenantId(),
       name: displayName,
       type,
       institution: item.institutionName,

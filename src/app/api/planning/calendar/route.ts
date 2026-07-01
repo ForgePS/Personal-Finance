@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { buildMonthCalendar } from "@/lib/schedule-service";
 import { parseMonthKey } from "@/lib/utils";
+import { withAuth } from "@/lib/api-auth";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, auth) => {
   const { searchParams } = new URL(request.url);
   const monthKey = searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
   const month = parseMonthKey(monthKey);
@@ -35,4 +36,4 @@ export async function GET(request: NextRequest) {
       ])
     ),
   });
-}
+});

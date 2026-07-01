@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { getBudgetData } from "@/lib/services";
 import { formatCurrency, formatMonthYear } from "@/lib/utils";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BudgetsPage() {
+  return withServerAuth(async () => {
   const budgets = await getBudgetData();
 
   const totalBudgeted = budgets.reduce((s, b) => s + b.amount, 0);
@@ -79,4 +81,5 @@ export default async function BudgetsPage() {
       </Card>
     </div>
   );
+  });
 }

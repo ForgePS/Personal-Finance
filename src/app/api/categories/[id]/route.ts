@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { withAuthContext } from "@/lib/api-auth";
 import { normalizeCategory } from "@/lib/category-utils";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = await request.json();
 
@@ -23,12 +21,9 @@ export async function PATCH(
   });
 
   return NextResponse.json(normalizeCategory(category));
-}
+});
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuthContext(async (request: NextRequest, auth, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
 
   const [transactions, budgets, envelopes] = await Promise.all([
@@ -49,4 +44,4 @@ export async function DELETE(
 
   await db.category.delete({ where: { id } });
   return NextResponse.json({ ok: true });
-}
+});

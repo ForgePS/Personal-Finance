@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { Suspense } from "react";
 import { getSettingsData } from "@/lib/settings-service";
 import { SettingsPageClient } from "@/components/settings-page-client";
@@ -16,6 +17,7 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  return withServerAuth(async () => {
   const params = await searchParams;
   const data = await getSettingsData();
 
@@ -47,4 +49,5 @@ export default async function SettingsPage({
       />
     </Suspense>
   );
+  });
 }

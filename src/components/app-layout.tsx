@@ -1,8 +1,16 @@
 "use client";
 
 import { Sidebar } from "@/components/sidebar";
+import { usePathname } from "next/navigation";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/login";
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
