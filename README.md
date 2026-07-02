@@ -66,7 +66,7 @@ For production with real banks, apply for Plaid production access and set `PLAID
 
 ### Deploy to Firebase (uses your existing project)
 
-Your Firebase project **money-command-3ee1b** already has the APIs — see **[FIREBASE_EXISTING.md](./FIREBASE_EXISTING.md)**.
+Your Firebase project **personal-finance-ed108** — see **[FIREBASE_EXISTING.md](./FIREBASE_EXISTING.md)**.
 
 Uses **Firestore** (your Firebase database) + **App Hosting** + your existing **Plaid secrets**.
 
@@ -76,7 +76,7 @@ Deploy on **Cloud Run + Cloud SQL** — all within your Google Cloud project. Se
 
 ```bash
 gcloud auth login
-gcloud config set project money-command-3ee1b
+gcloud config set project personal-finance-ed108
 ./scripts/deploy-gcp.sh
 ```
 

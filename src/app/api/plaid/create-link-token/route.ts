@@ -25,7 +25,7 @@ export async function POST() {
   try {
     const plaid = await getPlaidClient();
     const response = await plaid.linkTokenCreate({
-      user: { client_user_id: "money-command-user" },
+      user: { client_user_id: "personal-finance-user" },
       client_name: "Money Command",
       products: PLAID_PRODUCTS,
       country_codes: PLAID_COUNTRY_CODES,

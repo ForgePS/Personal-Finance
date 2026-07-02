@@ -1,10 +1,10 @@
 #!/bin/bash
 # Link Plaid secrets to your App Hosting backend.
-# Run from the project root after: npx firebase-tools login && npx firebase-tools use money-command-3ee1b
+# Run from the project root after: npx firebase-tools login && npx firebase-tools use personal-finance-ed108
 
 set -e
 
-BACKEND="money-command"
+BACKEND="personal-finance"
 
 echo "Granting App Hosting backend '$BACKEND' access to Plaid secrets..."
 echo ""

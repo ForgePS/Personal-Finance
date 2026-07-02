@@ -1,5 +1,5 @@
-# Firebase App Hosting — uses your existing Firebase project APIs
-# Project: money-command-3ee1b
+# Firebase App Hosting — ForgePS Personal Finance
+# Project: personal-finance-ed108
 # Docs: https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
@@ -24,13 +24,13 @@ env:
       - RUNTIME
 
   - variable: FIREBASE_PROJECT_ID
-    value: money-command-3ee1b
+    value: personal-finance-ed108
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: money-command-3ee1b
+    value: personal-finance-ed108
     availability:
       - BUILD
       - RUNTIME

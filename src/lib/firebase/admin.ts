@@ -14,7 +14,7 @@ export function getFirebaseProjectId(): string {
     process.env.FIREBASE_PROJECT_ID ||
     process.env.GOOGLE_CLOUD_PROJECT ||
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-    "money-command-3ee1b"
+    "personal-finance-ed108"
   );
 }
 

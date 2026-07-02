@@ -4,17 +4,17 @@
 #
 # Prerequisites:
 #   gcloud auth login
-#   gcloud config set project money-command-3ee1b
+#   gcloud config set project personal-finance-ed108
 
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-money-command-3ee1b}"
+PROJECT_ID="${GCP_PROJECT_ID:-personal-finance-ed108}"
 REGION="${GCP_REGION:-us-central1}"
-SERVICE_NAME="${GCP_SERVICE_NAME:-money-command}"
-DB_INSTANCE="${GCP_DB_INSTANCE:-money-command-db}"
-DB_NAME="${GCP_DB_NAME:-moneycommand}"
-DB_USER="${GCP_DB_USER:-moneycommand}"
-AR_REPO="${GCP_AR_REPO:-money-command}"
+SERVICE_NAME="${GCP_SERVICE_NAME:-personal-finance}"
+DB_INSTANCE="${GCP_DB_INSTANCE:-personal-finance-db}"
+DB_NAME="${GCP_DB_NAME:-personalfinance}"
+DB_USER="${GCP_DB_USER:-personalfinance}"
+AR_REPO="${GCP_AR_REPO:-personal-finance}"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/${SERVICE_NAME}:latest"
 
 echo "==> Project: ${PROJECT_ID}"
