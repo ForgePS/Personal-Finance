@@ -67,16 +67,16 @@ export function TransactionsPageClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Transactions</h1>
           <p className="text-sm text-slate-500">
             {filtered.length} transactions
             {accountFilter ? ` · ${accountFilter.name}` : ""}
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Add Transaction
         </Button>
@@ -120,20 +120,22 @@ export function TransactionsPageClient({
               className="sm:w-56"
             />
           </div>
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1 sm:self-end">
-            {(["all", "income", "expense", "debt"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition-all ${
-                  filter === f
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+          <div className="-mx-1 overflow-x-auto scrollbar-hide">
+            <div className="flex min-w-max gap-1 rounded-xl bg-slate-100 p-1 sm:min-w-0 sm:self-end">
+              {(["all", "income", "expense", "debt"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`min-h-[40px] shrink-0 rounded-lg px-3 py-2 text-sm font-medium capitalize transition-all touch-manipulation ${
+                    filter === f
+                      ? "bg-white text-indigo-600 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

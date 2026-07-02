@@ -121,13 +121,13 @@ export function DashboardPageClient({
             {selectedAccountName ? ` · ${selectedAccountName}` : ""}
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <Select
             label="Account"
             value={selectedValue}
             onChange={(e) => handleAccountChange(e.target.value)}
             options={accountOptions}
-            className="sm:w-56"
+            className="w-full md:w-56"
           />
           <DashboardActions defaultAccountId={accountId ?? undefined} />
         </div>

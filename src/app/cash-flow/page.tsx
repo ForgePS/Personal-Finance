@@ -68,7 +68,51 @@ export default async function CashFlowPage() {
 
       <Card>
         <CardHeader title="Monthly Breakdown" subtitle="Detailed cash flow by month" />
-        <div className="overflow-x-auto">
+
+        <div className="space-y-3 md:hidden">
+          {data.cashFlowHistory.map((month) => {
+            const savingsRate =
+              month.income > 0 ? ((month.net / month.income) * 100).toFixed(1) : "0.0";
+            return (
+              <div
+                key={month.month}
+                className="rounded-xl border border-slate-100 bg-slate-50/80 p-4"
+              >
+                <p className="font-semibold text-slate-900">{month.month}</p>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-slate-500">Income</p>
+                    <p className="font-semibold tabular-nums text-emerald-600">
+                      {formatCurrency(month.income)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Expenses</p>
+                    <p className="font-semibold tabular-nums text-rose-600">
+                      {formatCurrency(month.expenses)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Net</p>
+                    <p
+                      className={`font-semibold tabular-nums ${
+                        month.net >= 0 ? "text-emerald-600" : "text-rose-600"
+                      }`}
+                    >
+                      {formatCurrency(month.net)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Savings Rate</p>
+                    <p className="font-semibold tabular-nums text-slate-700">{savingsRate}%</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-500">

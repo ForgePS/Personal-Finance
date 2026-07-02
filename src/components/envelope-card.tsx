@@ -192,21 +192,21 @@ export function EnvelopeCard({
         <div className="mt-4 grid grid-cols-2 gap-2 sm:opacity-100">
           <button
             onClick={onSetBudget}
-            className="flex items-center justify-center gap-1 rounded-lg bg-violet-50 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100"
+            className="flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-violet-50 py-2.5 text-xs font-medium text-violet-700 hover:bg-violet-100 touch-manipulation"
           >
             <Target className="h-3.5 w-3.5" />
             Budget
           </button>
           <button
             onClick={onFund}
-            className="flex items-center justify-center gap-1 rounded-lg bg-indigo-50 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+            className="flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-indigo-50 py-2.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 touch-manipulation"
           >
             <Plus className="h-3.5 w-3.5" />
             Fund
           </button>
           <button
             onClick={onReconcile}
-            className="flex items-center justify-center gap-1 rounded-lg bg-emerald-50 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+            className="flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-emerald-50 py-2.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 touch-manipulation"
           >
             <ListChecks className="h-3.5 w-3.5" />
             Reconcile
@@ -214,7 +214,7 @@ export function EnvelopeCard({
           <button
             onClick={onTransfer}
             disabled={envelope.remaining <= 0}
-            className="flex items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            className="flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-slate-50 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 touch-manipulation"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Move
@@ -222,7 +222,7 @@ export function EnvelopeCard({
           <button
             onClick={onReturn}
             disabled={envelope.remaining <= 0}
-            className="flex items-center justify-center gap-1 rounded-lg bg-slate-50 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+            className="flex min-h-[44px] items-center justify-center gap-1 rounded-lg bg-slate-50 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 touch-manipulation"
           >
             <Minus className="h-3.5 w-3.5" />
             Return

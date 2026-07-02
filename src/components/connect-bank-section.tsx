@@ -228,7 +228,7 @@ export function ConnectBankSection() {
               key={bank.id}
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-slate-900">
                     {bank.institutionName || "Connected Bank"}
@@ -238,18 +238,18 @@ export function ConnectBankSection() {
                     {bank.lastSyncedAt && ` · Last synced ${formatShortDate(bank.lastSyncedAt)}`}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleSync(bank.id)}
                     disabled={syncing === bank.id}
-                    className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 sm:flex-none sm:py-1.5 touch-manipulation"
                   >
                     <RefreshCw className={cn("h-3.5 w-3.5", syncing === bank.id && "animate-spin")} />
                     Sync
                   </button>
                   <button
                     onClick={() => handleDisconnect(bank.id, bank.institutionName || "bank")}
-                    className="flex items-center gap-1 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-700"
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-rose-50 hover:text-rose-700 sm:flex-none sm:py-1.5 touch-manipulation"
                   >
                     <Unplug className="h-3.5 w-3.5" />
                     Disconnect

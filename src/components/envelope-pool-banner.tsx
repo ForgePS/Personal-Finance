@@ -52,34 +52,34 @@ export function EnvelopePoolBanner({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-5">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div>
           <p className="text-sm font-medium text-slate-500">Total Pool</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+          <p className="mt-1 text-xl font-bold tabular-nums text-slate-900 sm:text-2xl">
             {formatCurrency(totalFunds)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">Budgeted</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-violet-600">
+          <p className="mt-1 text-xl font-bold tabular-nums text-violet-600 sm:text-2xl">
             {formatCurrency(totalBudgeted)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">In Envelopes</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-indigo-600">
+          <p className="mt-1 text-xl font-bold tabular-nums text-indigo-600 sm:text-2xl">
             {formatCurrency(totalAllocated)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">Unallocated</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600">
+          <p className="mt-1 text-xl font-bold tabular-nums text-emerald-600 sm:text-2xl">
             {formatCurrency(unallocated)}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">Total Spent</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-rose-600">
+          <p className="mt-1 text-xl font-bold tabular-nums text-rose-600 sm:text-2xl">
             {formatCurrency(totalSpent)}
           </p>
         </div>

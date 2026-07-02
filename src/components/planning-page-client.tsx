@@ -211,8 +211,81 @@ export function PlanningPageClient({
           <Card>
             <CardHeader
               title="Month Calendar"
-              subtitle="Click a day to view details or add income and expenses"
+              subtitle="Tap a day to view details or add income and expenses"
             />
+
+            <div className="space-y-2 lg:hidden">
+              {days.map((day) => {
+                const dayKey = format(day, "yyyy-MM-dd");
+                const occurrences = calendar.byDay[dayKey] ?? [];
+                const dayIncome = occurrences
+                  .filter((o) => o.type === "income")
+                  .reduce((s, o) => s + o.amount, 0);
+                const dayExpenses = occurrences
+                  .filter((o) => o.type === "expense")
+                  .reduce((s, o) => s + o.amount, 0);
+                const isSelected = selectedDay === dayKey;
+
+                return (
+                  <button
+                    key={dayKey}
+                    type="button"
+                    onClick={() => setSelectedDay(dayKey)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all touch-manipulation",
+                      isSelected
+                        ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/20"
+                        : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl text-xs font-bold",
+                        isToday(day)
+                          ? "bg-indigo-600 text-white"
+                          : "bg-slate-100 text-slate-700"
+                      )}
+                    >
+                      <span className="text-[10px] font-medium uppercase">{format(day, "EEE")}</span>
+                      <span className="text-sm">{format(day, "d")}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {occurrences.length === 0 ? (
+                        <p className="text-sm text-slate-400">Nothing scheduled</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {occurrences.slice(0, 2).map((o) => (
+                            <p key={o.id} className="truncate text-sm text-slate-700">
+                              <span className={o.type === "income" ? "text-emerald-600" : "text-rose-600"}>
+                                {o.type === "income" ? "+" : "-"}
+                                {formatCurrency(o.amount)}
+                              </span>
+                              {" · "}
+                              {o.name}
+                            </p>
+                          ))}
+                          {occurrences.length > 2 && (
+                            <p className="text-xs text-slate-400">+{occurrences.length - 2} more</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {(dayIncome > 0 || dayExpenses > 0) && (
+                      <div className="shrink-0 text-right text-xs tabular-nums">
+                        {dayIncome > 0 && (
+                          <p className="font-medium text-emerald-600">+{formatCurrency(dayIncome)}</p>
+                        )}
+                        {dayExpenses > 0 && (
+                          <p className="font-medium text-rose-600">-{formatCurrency(dayExpenses)}</p>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="hidden lg:block">
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                 <div key={d} className="py-2">
@@ -289,6 +362,7 @@ export function PlanningPageClient({
                   </button>
                 );
               })}
+            </div>
             </div>
           </Card>
 

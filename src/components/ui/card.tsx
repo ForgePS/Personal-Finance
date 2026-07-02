@@ -11,7 +11,7 @@ export function Card({ children, className, padding = true }: CardProps) {
     <div
       className={cn(
         "rounded-2xl border border-slate-200/80 bg-white shadow-sm",
-        padding && "p-6",
+        padding && "p-4 sm:p-6",
         className
       )}
     >
@@ -30,12 +30,12 @@ export function CardHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between">
-      <div>
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
         <h3 className="text-base font-semibold text-slate-900">{title}</h3>
         {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function StatCard({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
+          <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{value}</p>
           {change && (
             <p className="mt-1 text-xs text-slate-500">
               <span className="font-medium text-emerald-600">{change}</span>

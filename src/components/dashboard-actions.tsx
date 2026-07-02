@@ -12,12 +12,12 @@ export function DashboardActions({ defaultAccountId }: { defaultAccountId?: stri
 
   return (
     <>
-      <div className="flex gap-2">
-        <Button variant="secondary" size="sm" onClick={() => setShowAccount(true)}>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+        <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={() => setShowAccount(true)}>
           <Plus className="h-4 w-4" />
           Add Account
         </Button>
-        <Button size="sm" onClick={() => setShowTransaction(true)}>
+        <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowTransaction(true)}>
           <Plus className="h-4 w-4" />
           Add Transaction
         </Button>
