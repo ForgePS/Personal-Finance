@@ -35,5 +35,11 @@ env:
       - BUILD
       - RUNTIME
 
+  # Prisma generate at build time only; production runtime uses Firestore.
+  - variable: DATABASE_URL
+    value: file:./build.db
+    availability:
+      - BUILD
+
   # Plaid: see apphosting.plaid.example.yaml — do not add secrets here until
   # scripts/setup-plaid-secrets.sh has been run successfully.
