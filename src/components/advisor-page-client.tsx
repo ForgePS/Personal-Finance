@@ -204,7 +204,7 @@ export function AdvisorPageClient({ initialData }: { initialData: FinancialAdvis
             <StatCard
               label="Liquid buffer"
               value={`${snapshot.monthsOfExpenses.toFixed(1)} mo`}
-              change={`${formatCurrency(snapshot.checkingBalance)} in checking/cash`}
+              change={`${formatCurrency(snapshot.checkingBalance)} in checking & savings`}
               icon={<Shield className="h-5 w-5" />}
               accent={snapshot.monthsOfExpenses >= 3 ? "green" : "amber"}
             />
