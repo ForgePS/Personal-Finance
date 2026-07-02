@@ -4,7 +4,59 @@ Copy all app data from **`money-command-3ee1b`** into **`personal-finance-ed108`
 
 ---
 
-## What gets copied
+## Recommended: Direct copy (skip export/import)
+
+If `gcloud firestore export` keeps failing with **PERMISSION_DENIED** on Cloud Storage, use this method instead. It reads Firestore directly — **no bucket permissions needed**.
+
+### 1. Download two service account keys
+
+**Money Command (source):**  
+https://console.firebase.google.com/project/money-command-3ee1b/settings/serviceaccounts/adminsdk  
+→ **Generate new private key** → save as `money-command-sa.json`
+
+**Personal Finance (destination):**  
+https://console.firebase.google.com/project/personal-finance-ed108/settings/serviceaccounts/adminsdk  
+→ **Generate new private key** → save as `personal-finance-sa.json`
+
+### 2. Run in Google Cloud Shell
+
+Open: https://console.cloud.google.com/cloudshell?project=personal-finance-ed108
+
+```bash
+git clone https://github.com/ForgePS/Personal-Finance.git
+cd Personal-Finance
+npm install
+```
+
+Use the **⋮** menu → **Upload** to upload both JSON files to your home directory.
+
+```bash
+# Preview counts
+SOURCE_SA_FILE=~/money-command-sa.json \
+DEST_SA_FILE=~/personal-finance-sa.json \
+npx tsx scripts/migrate-firestore.ts --dry-run
+
+# Copy everything
+SOURCE_SA_FILE=~/money-command-sa.json \
+DEST_SA_FILE=~/personal-finance-sa.json \
+npx tsx scripts/migrate-firestore.ts
+
+# Or copy every collection found in source (including any extras)
+SOURCE_SA_FILE=~/money-command-sa.json \
+DEST_SA_FILE=~/personal-finance-sa.json \
+npx tsx scripts/migrate-firestore.ts --all-collections
+```
+
+### 3. Verify
+
+https://console.firebase.google.com/project/personal-finance-ed108/firestore
+
+---
+
+## Alternative: gcloud export/import (Cloud Storage)
+
+Only use this if direct copy is not an option. Requires bucket IAM for service account  
+`service-611170516796@gcp-sa-firestore.iam.gserviceaccount.com` on the destination bucket.
 
 | Collection | Data |
 |------------|------|

@@ -1,29 +1,23 @@
 /**
- * Copy all Money Command Firestore data into Personal Finance.
+ * Direct Firestore copy — no Cloud Storage, no export/import permissions.
  *
- * Prerequisites:
- *   - Service account JSON for SOURCE (Firestore read) and DEST (Firestore write)
- *   - Or one Google account with access to both projects + `gcloud auth application-default login`
- *
- * Usage:
- *   SOURCE_PROJECT_ID=money-command-3ee1b \
- *   DEST_PROJECT_ID=personal-finance-ed108 \
- *   SOURCE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}' \
- *   DEST_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}' \
- *   npx tsx scripts/migrate-firestore.ts
- *
- * Options:
- *   --dry-run     Count documents only, do not write
- *   --overwrite   Replace existing docs in destination (default: merge/set)
+ * Cloud Shell (recommended):
+ *   git clone https://github.com/ForgePS/Personal-Finance.git && cd Personal-Finance && npm install
+ *   # Upload money-command-sa.json and personal-finance-sa.json via Cloud Shell ⋮ menu
+ *   SOURCE_SA_FILE=~/money-command-sa.json DEST_SA_FILE=~/personal-finance-sa.json \
+ *     npx tsx scripts/migrate-firestore.ts --dry-run
+ *   SOURCE_SA_FILE=~/money-command-sa.json DEST_SA_FILE=~/personal-finance-sa.json \
+ *     npx tsx scripts/migrate-firestore.ts
  */
 
+import { readFileSync } from "fs";
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 const SOURCE_PROJECT = process.env.SOURCE_PROJECT_ID ?? "money-command-3ee1b";
 const DEST_PROJECT = process.env.DEST_PROJECT_ID ?? "personal-finance-ed108";
 
-const COLLECTIONS = [
+const KNOWN_COLLECTIONS = [
   "categories",
   "plaidItems",
   "accounts",
@@ -42,28 +36,33 @@ const COLLECTIONS = [
 
 const BATCH_SIZE = 400;
 const dryRun = process.argv.includes("--dry-run");
+const copyAll = process.argv.includes("--all-collections");
 
-function parseServiceAccount(raw: string | undefined, label: string) {
+function loadServiceAccount(label: string): Record<string, string> {
+  const file = process.env[`${label}_SA_FILE`];
+  const raw = process.env[`${label}_SERVICE_ACCOUNT_KEY`]
+    ?? (file ? readFileSync(file, "utf8") : undefined);
+
   if (!raw) {
     throw new Error(
-      `Missing ${label}. Download a service account key from Firebase Console → Project Settings → Service Accounts → Generate new private key.`
+      `Missing ${label} credentials. Set ${label}_SA_FILE=/path/to/key.json or ${label}_SERVICE_ACCOUNT_KEY.`
     );
   }
   return JSON.parse(raw) as Record<string, string>;
 }
 
-function initApp(name: string, projectId: string, serviceAccount?: Record<string, string>): App {
+function initApp(name: string, projectId: string, serviceAccount: Record<string, string>): App {
   const existing = getApps().find((app) => app.name === name);
   if (existing) return existing;
+  return initializeApp(
+    { credential: cert(serviceAccount as Parameters<typeof cert>[0]), projectId },
+    name
+  );
+}
 
-  if (serviceAccount) {
-    return initializeApp(
-      { credential: cert(serviceAccount as Parameters<typeof cert>[0]), projectId },
-      name
-    );
-  }
-
-  return initializeApp({ projectId }, name);
+async function listAllCollections(db: Firestore): Promise<string[]> {
+  const refs = await db.listCollections();
+  return refs.map((r) => r.id).sort();
 }
 
 async function copyCollection(
@@ -73,7 +72,7 @@ async function copyCollection(
 ): Promise<number> {
   const snap = await sourceDb.collection(collectionName).get();
   if (snap.empty) {
-    console.log(`  ${collectionName}: 0 documents (skipped)`);
+    console.log(`  ${collectionName}: 0 documents`);
     return 0;
   }
 
@@ -95,6 +94,7 @@ async function copyCollection(
       await batch.commit();
       batch = destDb.batch();
       batchCount = 0;
+      process.stdout.write(`  ${collectionName}: ${written}/${snap.size}\r`);
     }
   }
 
@@ -107,26 +107,14 @@ async function copyCollection(
 }
 
 async function main() {
-  console.log(`Firestore migration`);
+  console.log("Direct Firestore migration (no Cloud Storage required)");
   console.log(`  Source: ${SOURCE_PROJECT}`);
   console.log(`  Dest:   ${DEST_PROJECT}`);
-  if (dryRun) console.log(`  Mode:   DRY RUN (no writes)`);
+  if (dryRun) console.log("  Mode:   DRY RUN");
   console.log("");
 
-  const sourceSa = process.env.SOURCE_SERVICE_ACCOUNT_KEY
-    ? parseServiceAccount(process.env.SOURCE_SERVICE_ACCOUNT_KEY, "SOURCE_SERVICE_ACCOUNT_KEY")
-    : undefined;
-  const destSa = process.env.DEST_SERVICE_ACCOUNT_KEY
-    ? parseServiceAccount(process.env.DEST_SERVICE_ACCOUNT_KEY, "DEST_SERVICE_ACCOUNT_KEY")
-    : undefined;
-
-  if (!sourceSa || !destSa) {
-    console.error(
-      "Set SOURCE_SERVICE_ACCOUNT_KEY and DEST_SERVICE_ACCOUNT_KEY to JSON strings from each Firebase project."
-    );
-    console.error("See FIRESTORE_MIGRATE.md for the gcloud export/import method (no keys required in Cloud Shell).");
-    process.exit(1);
-  }
+  const sourceSa = loadServiceAccount("SOURCE");
+  const destSa = loadServiceAccount("DEST");
 
   initApp("source", SOURCE_PROJECT, sourceSa);
   initApp("dest", DEST_PROJECT, destSa);
@@ -134,18 +122,34 @@ async function main() {
   const sourceDb = getFirestore(getApps().find((a) => a.name === "source")!);
   const destDb = getFirestore(getApps().find((a) => a.name === "dest")!);
 
+  let collections: string[];
+  if (copyAll) {
+    collections = await listAllCollections(sourceDb);
+    console.log(`Copying all ${collections.length} collections from source...\n`);
+  } else {
+    collections = [...KNOWN_COLLECTIONS];
+    console.log(`Copying ${collections.length} app collections...\n`);
+  }
+
   let total = 0;
-  for (const name of COLLECTIONS) {
-    total += await copyCollection(sourceDb, destDb, name);
+  for (const name of collections) {
+    try {
+      total += await copyCollection(sourceDb, destDb, name);
+    } catch (err) {
+      console.error(`  ${name}: FAILED —`, err instanceof Error ? err.message : err);
+      throw err;
+    }
   }
 
   console.log("");
-  console.log(dryRun ? `Dry run complete: ${total} documents would be copied.` : `Done: ${total} documents copied.`);
-  console.log("");
-  console.log("Next: open Personal Finance app and verify accounts, transactions, and envelopes.");
+  console.log(
+    dryRun
+      ? `Dry run complete: ${total} documents would be copied.`
+      : `Done: ${total} documents copied to ${DEST_PROJECT}.`
+  );
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error("\nMigration failed:", err instanceof Error ? err.message : err);
   process.exit(1);
 });
