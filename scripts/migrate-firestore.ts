@@ -1,13 +1,15 @@
 /**
  * Direct Firestore copy — no Cloud Storage, no export/import permissions.
  *
- * Cloud Shell (recommended):
+ * Cloud Shell with ADC (recommended when org policy blocks SA key download):
+ *   gcloud auth application-default login
  *   git clone https://github.com/ForgePS/Personal-Finance.git && cd Personal-Finance && npm install
- *   # Upload money-command-sa.json and personal-finance-sa.json via Cloud Shell ⋮ menu
+ *   npx tsx scripts/migrate-firestore.ts --dry-run --all-collections
+ *   npx tsx scripts/migrate-firestore.ts --all-collections
+ *
+ * Or with service account JSON keys:
  *   SOURCE_SA_FILE=~/money-command-sa.json DEST_SA_FILE=~/personal-finance-sa.json \
  *     npx tsx scripts/migrate-firestore.ts --dry-run
- *   SOURCE_SA_FILE=~/money-command-sa.json DEST_SA_FILE=~/personal-finance-sa.json \
- *     npx tsx scripts/migrate-firestore.ts
  */
 
 import { readFileSync } from "fs";
@@ -38,26 +40,42 @@ const BATCH_SIZE = 400;
 const dryRun = process.argv.includes("--dry-run");
 const copyAll = process.argv.includes("--all-collections");
 
-function loadServiceAccount(label: string): Record<string, string> {
+function loadServiceAccount(label: string): Record<string, string> | undefined {
   const file = process.env[`${label}_SA_FILE`];
   const raw = process.env[`${label}_SERVICE_ACCOUNT_KEY`]
     ?? (file ? readFileSync(file, "utf8") : undefined);
 
-  if (!raw) {
-    throw new Error(
-      `Missing ${label} credentials. Set ${label}_SA_FILE=/path/to/key.json or ${label}_SERVICE_ACCOUNT_KEY.`
-    );
-  }
+  if (!raw) return undefined;
   return JSON.parse(raw) as Record<string, string>;
 }
 
-function initApp(name: string, projectId: string, serviceAccount: Record<string, string>): App {
+function usingAdc(): boolean {
+  return (
+    process.env.USE_ADC === "1" ||
+    process.env.USE_ADC === "true" ||
+    (!process.env.SOURCE_SA_FILE &&
+      !process.env.DEST_SA_FILE &&
+      !process.env.SOURCE_SERVICE_ACCOUNT_KEY &&
+      !process.env.DEST_SERVICE_ACCOUNT_KEY)
+  );
+}
+
+function initApp(
+  name: string,
+  projectId: string,
+  serviceAccount?: Record<string, string>
+): App {
   const existing = getApps().find((app) => app.name === name);
   if (existing) return existing;
-  return initializeApp(
-    { credential: cert(serviceAccount as Parameters<typeof cert>[0]), projectId },
-    name
-  );
+
+  if (serviceAccount) {
+    return initializeApp(
+      { credential: cert(serviceAccount as Parameters<typeof cert>[0]), projectId },
+      name
+    );
+  }
+
+  return initializeApp({ credential: applicationDefault(), projectId }, name);
 }
 
 async function listAllCollections(db: Firestore): Promise<string[]> {
@@ -115,6 +133,17 @@ async function main() {
 
   const sourceSa = loadServiceAccount("SOURCE");
   const destSa = loadServiceAccount("DEST");
+  const adc = usingAdc();
+
+  if (adc) {
+    console.log("  Auth:   Application Default Credentials (your Google login)");
+    console.log("          Run: gcloud auth application-default login");
+    console.log("");
+  } else if (!sourceSa || !destSa) {
+    throw new Error(
+      "Provide SOURCE_SA_FILE + DEST_SA_FILE, or omit them and use ADC (Cloud Shell + gcloud auth application-default login)."
+    );
+  }
 
   initApp("source", SOURCE_PROJECT, sourceSa);
   initApp("dest", DEST_PROJECT, destSa);
