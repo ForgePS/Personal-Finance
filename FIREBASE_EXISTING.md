@@ -143,8 +143,12 @@ env:
 **Plaid not working**  
 → Plaid is optional. Ensure `PLAID_*` secrets exist and run `firebase apphosting:secrets:grantaccess` for the `personal-finance` backend.
 
-**Deploy fails: "Misconfigured secret" / `PLAID_CLIENT_ID`**  
-→ Either create the secrets and run `firebase apphosting:secrets:grantaccess`, or comment out Plaid blocks in `apphosting.yaml` to deploy without bank linking.
+**Deploy fails: "Misconfigured secret" / `PLAID_CLIENT_ID` / `failed_precondition`**  
+→ `apphosting.yaml` must not reference Plaid until secrets exist. If you still see this after removing Plaid from the repo:
+
+1. In [App Hosting](https://console.firebase.google.com/project/personal-finance-ed108/apphosting) → backend **personal-finance** → **Environment**, remove any `PLAID_*` secret bindings saved in the console.
+2. Do **not** click "Retry" on an old failed rollout — click **Create rollout** and pick the latest `main` commit.
+3. To enable Plaid later, run `./scripts/setup-plaid-secrets.sh`, then copy from `apphosting.plaid.example.yaml`.
 
 **Empty dashboard**  
 → Firestore is empty on first deploy. Use the app to add accounts, or run seed locally against Firestore (see above).

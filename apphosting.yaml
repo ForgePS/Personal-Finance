@@ -35,18 +35,5 @@ env:
       - BUILD
       - RUNTIME
 
-  # Plaid (optional — uncomment after creating secrets and running scripts/grant-plaid-secrets.sh)
-  # - variable: PLAID_CLIENT_ID
-  #   secret: PLAID_CLIENT_ID@1
-  #   availability:
-  #     - RUNTIME
-  #
-  # - variable: PLAID_SECRET
-  #   secret: PLAID_SECRET@1
-  #   availability:
-  #     - RUNTIME
-  #
-  # - variable: PLAID_ENV
-  #   value: production
-  #   availability:
-  #     - RUNTIME
+  # Plaid: see apphosting.plaid.example.yaml — do not add secrets here until
+  # scripts/setup-plaid-secrets.sh has been run successfully.
