@@ -70,6 +70,10 @@ Your Firebase project **personal-finance-ed108** — see **[FIREBASE_EXISTING.md
 
 Uses **Firestore** (your Firebase database) + **App Hosting** + your existing **Plaid secrets**.
 
+### Migrate data from Money Command
+
+Copy Firestore data from **`money-command-3ee1b`** → **`personal-finance-ed108`**: **[FIRESTORE_MIGRATE.md](./FIRESTORE_MIGRATE.md)**.
+
 ### Deploy to Google Cloud (alternative)
 
 Deploy on **Cloud Run + Cloud SQL** — all within your Google Cloud project. See **[GCP_DEPLOY.md](./GCP_DEPLOY.md)**.
