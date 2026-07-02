@@ -26,6 +26,19 @@ No Turso. No separate Cloud SQL. Everything stays in Firebase.
 
 1. [Firebase Console → Firestore](https://console.firebase.google.com/project/personal-finance-ed108/firestore)
 2. If not set up, click **Create database** → **Production mode** → pick a region (e.g. `us-central1`)
+3. Grant the App Hosting service account access (required for 500 errors on empty DB):
+
+```bash
+./scripts/grant-firestore-access.sh
+```
+
+Then verify:
+
+```
+https://personal-finance--personal-finance-ed108.us-central1.hosted.app/api/health?deep=1
+```
+
+Should return `"firestore": { "ok": true }`.
 
 ### 2. Connect GitHub to App Hosting
 
@@ -137,8 +150,8 @@ env:
 
 ## Troubleshooting
 
-**"Permission denied" on Firestore**  
-→ Enable Firestore API in [Google Cloud Console](https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=personal-finance-ed108)
+**"Permission denied" on Firestore / 500 on every page**  
+→ Enable Firestore, then run `./scripts/grant-firestore-access.sh`. Test with `/api/health?deep=1`.
 
 **Plaid not working**  
 → Plaid is optional. Ensure `PLAID_*` secrets exist and run `firebase apphosting:secrets:grantaccess` for the `personal-finance` backend.
