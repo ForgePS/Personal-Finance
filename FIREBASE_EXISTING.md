@@ -157,11 +157,31 @@ env:
 → Plaid is optional. Ensure `PLAID_*` secrets exist and run `firebase apphosting:secrets:grantaccess` for the `personal-finance` backend.
 
 **Deploy fails: "Misconfigured secret" / `PLAID_CLIENT_ID` / `failed_precondition`**  
-→ `apphosting.yaml` must not reference Plaid until secrets exist. If you still see this after removing Plaid from the repo:
+→ App Hosting may still require `PLAID_*` secrets even after removing them from `apphosting.yaml` (cached on the Cloud Run backend). The Environment tab in the console can look empty while secrets are still bound.
 
-1. In [App Hosting](https://console.firebase.google.com/project/personal-finance-ed108/apphosting) → backend **personal-finance** → **Environment**, remove any `PLAID_*` secret bindings saved in the console.
-2. Do **not** click "Retry" on an old failed rollout — click **Create rollout** and pick the latest `main` commit.
-3. To enable Plaid later, run `./scripts/setup-plaid-secrets.sh`, then copy from `apphosting.plaid.example.yaml`.
+**Fastest fix (Google Cloud Shell):**
+
+```bash
+gcloud config set project personal-finance-ed108
+./scripts/unblock-apphosting-deploy.sh
+```
+
+Or create secrets manually:
+
+```bash
+printf 'placeholder' | gcloud secrets create PLAID_CLIENT_ID --replication-policy=automatic --data-file=-
+printf 'placeholder' | gcloud secrets create PLAID_SECRET --replication-policy=automatic --data-file=-
+gcloud secrets add-iam-policy-binding PLAID_CLIENT_ID \
+  --member="serviceAccount:firebase-app-hosting-compute@personal-finance-ed108.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+gcloud secrets add-iam-policy-binding PLAID_SECRET \
+  --member="serviceAccount:firebase-app-hosting-compute@personal-finance-ed108.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+Then **Create rollout** from `main` (do not Retry old failures).
+
+Also check **App Hosting → Secrets** tab (not just Environment) and **Cloud Run → personal-finance → Variables & Secrets**.
 
 **Empty dashboard**  
 → Firestore is empty on first deploy. Use the app to add accounts, or run seed locally against Firestore (see above).
