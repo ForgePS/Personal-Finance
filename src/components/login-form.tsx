@@ -70,7 +70,7 @@ export function LoginForm() {
       router.replace(nextPath);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed");
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }

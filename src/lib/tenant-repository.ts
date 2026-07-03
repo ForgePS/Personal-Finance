@@ -53,6 +53,87 @@ async function firestoreFindTenantBySlug(slug: string) {
   return { id: doc.id, ...doc.data() } as TenantRecord;
 }
 
+async function firestoreFindMemberByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const snap = await getDb()
+    .collection("tenantMembers")
+    .where("email", "==", normalized)
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() } as TenantMemberRecord;
+}
+
+async function firestoreUpdateMemberUserId(memberId: string, userId: string) {
+  const now = new Date().toISOString();
+  await getDb()
+    .collection("tenantMembers")
+    .doc(memberId)
+    .set(serializeDates({ userId, updatedAt: now }), { merge: true });
+}
+
+async function firestoreDeleteMember(memberId: string) {
+  await getDb().collection("tenantMembers").doc(memberId).delete();
+}
+
+async function firestoreCountAccounts(tenantId: string) {
+  const snap = await getDb().collection("accounts").get();
+  return snap.docs.filter((doc) => {
+    const data = doc.data();
+    const docTenant = data.tenantId as string | undefined;
+    if (!docTenant) return true;
+    return docTenant === tenantId || tenantId === "legacy-household";
+  }).length;
+}
+
+async function firestoreHasUnscopedFinanceData() {
+  const snap = await getDb().collection("accounts").limit(1).get();
+  if (snap.empty) return false;
+  const doc = snap.docs[0];
+  return !doc.data().tenantId;
+}
+
+async function firestoreEnsureLegacyHouseholdOwner(userId: string, email: string) {
+  const hasUnscoped = await firestoreHasUnscopedFinanceData();
+  if (!hasUnscoped) return null;
+
+  const tenantId = "legacy-household";
+  const now = new Date().toISOString();
+  const tenantRef = getDb().collection("tenants").doc(tenantId);
+  const tenantDoc = await tenantRef.get();
+  if (!tenantDoc.exists) {
+    await tenantRef.set({
+      name: "Jeremy & Candice Household",
+      slug: "jeremy-candice",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  const existingByEmail = await firestoreFindMemberByEmail(email);
+  if (existingByEmail) {
+    await firestoreUpdateMemberUserId(existingByEmail.id, userId);
+    return { tenantId, tenantName: "Jeremy & Candice Household" };
+  }
+
+  const memberId = cuid();
+  await getDb()
+    .collection("tenantMembers")
+    .doc(memberId)
+    .set(
+      serializeDates({
+        tenantId,
+        userId,
+        email: email.trim().toLowerCase(),
+        role: "OWNER",
+        createdAt: now,
+        updatedAt: now,
+      })
+    );
+  return { tenantId, tenantName: "Jeremy & Candice Household" };
+}
+
 async function firestoreCreateTenant(input: {
   id?: string;
   name: string;
@@ -162,4 +243,45 @@ export async function ensureDevTenant(
     slug: "dev",
   });
   return { tenantId: created.id, tenantName: created.name };
+}
+
+export async function findMemberByEmail(email: string) {
+  if (isFirebaseProduction()) {
+    return firestoreFindMemberByEmail(email);
+  }
+  return rawDb.tenantMember.findFirst({
+    where: { email: email.trim().toLowerCase() },
+  });
+}
+
+export async function updateMemberUserId(memberId: string, userId: string) {
+  if (isFirebaseProduction()) {
+    return firestoreUpdateMemberUserId(memberId, userId);
+  }
+  return rawDb.tenantMember.update({
+    where: { id: memberId },
+    data: { userId },
+  });
+}
+
+export async function deleteMemberById(memberId: string) {
+  if (isFirebaseProduction()) {
+    return firestoreDeleteMember(memberId);
+  }
+  return rawDb.tenantMember.delete({ where: { id: memberId } });
+}
+
+export async function tenantHasFinanceData(tenantId: string) {
+  if (isFirebaseProduction()) {
+    return (await firestoreCountAccounts(tenantId)) > 0;
+  }
+  const count = await rawDb.account.count({ where: { tenantId } });
+  return count > 0;
+}
+
+export async function ensureLegacyHouseholdOwner(userId: string, email: string) {
+  if (isFirebaseProduction()) {
+    return firestoreEnsureLegacyHouseholdOwner(userId, email);
+  }
+  return null;
 }

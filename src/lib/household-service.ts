@@ -5,9 +5,15 @@ import { getDb, serializeDates } from "./firebase/admin";
 import {
   createTenantForUser,
   ensureDevTenant,
+  ensureLegacyHouseholdOwner,
+  findMemberByEmail,
   findMemberByUserId,
   findTenantById,
+  deleteMemberById,
+  tenantHasFinanceData,
+  updateMemberUserId,
 } from "./tenant-repository";
+import { isLegacyHouseholdId } from "./tenant-constants";
 
 export type { TenantMemberRole } from "@/generated/prisma/client";
 
@@ -374,6 +380,32 @@ export async function removeHouseholdMember(
   }
 }
 
+export async function claimHouseholdByEmail(
+  userId: string,
+  email: string
+): Promise<{ tenantId: string; tenantName: string } | null> {
+  const memberByEmail = await findMemberByEmail(email);
+  if (memberByEmail) {
+    await updateMemberUserId(memberByEmail.id, userId);
+
+    const staleMember = await findMemberByUserId(userId);
+    if (staleMember && staleMember.id !== memberByEmail.id) {
+      const staleHasData = await tenantHasFinanceData(staleMember.tenantId);
+      if (!staleHasData) {
+        await deleteMemberById(staleMember.id);
+      }
+    }
+
+    const tenant = await findTenantById(memberByEmail.tenantId);
+    return {
+      tenantId: memberByEmail.tenantId,
+      tenantName: tenant?.name ?? "Household",
+    };
+  }
+
+  return ensureLegacyHouseholdOwner(userId, email);
+}
+
 export async function resolveOrCreateHousehold(
   userId: string,
   email: string
@@ -385,15 +417,35 @@ export async function resolveOrCreateHousehold(
 
   const existingMember = await findMemberByUserId(userId);
   if (existingMember) {
+    const hasData =
+      isLegacyHouseholdId(existingMember.tenantId) ||
+      (await tenantHasFinanceData(existingMember.tenantId));
+
+    if (hasData) {
+      const tenant = await findTenantById(existingMember.tenantId);
+      return {
+        tenantId: existingMember.tenantId,
+        tenantName: tenant?.name ?? "Household",
+      };
+    }
+
+    const claimed = await claimHouseholdByEmail(userId, email);
+    if (claimed) return claimed;
+  }
+
+  const joined = await joinHouseholdFromPendingInvite(userId, email);
+  if (joined) return joined;
+
+  const claimed = await claimHouseholdByEmail(userId, email);
+  if (claimed) return claimed;
+
+  if (existingMember) {
     const tenant = await findTenantById(existingMember.tenantId);
     return {
       tenantId: existingMember.tenantId,
       tenantName: tenant?.name ?? "Household",
     };
   }
-
-  const joined = await joinHouseholdFromPendingInvite(userId, email);
-  if (joined) return joined;
 
   const tenant = await createTenantForUser(userId, email, {
     name: `${email.split("@")[0] ?? "My"}'s Household`,

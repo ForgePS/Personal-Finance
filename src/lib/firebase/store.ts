@@ -1,8 +1,7 @@
 import { getDb, COLLECTIONS, toDate, serializeDates } from "./admin";
 import { getTenantIdOrNull } from "../tenant-context";
+import { resolveLegacyTenantId } from "../tenant-constants";
 import { randomBytes } from "crypto";
-
-const LEGACY_TENANT_ID = "legacy-tenant";
 
 const TENANT_SCOPED_COLLECTIONS = new Set<string>(
   Object.values(COLLECTIONS).filter(
@@ -147,8 +146,9 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       continue;
     }
     if (key === "tenantId") {
-      const itemTenant = item.tenantId ?? LEGACY_TENANT_ID;
-      if (itemTenant !== value) return false;
+      if (!resolveLegacyTenantId(item.tenantId as string | undefined, String(value))) {
+        return false;
+      }
       continue;
     }
     if (item[key] !== value) return false;
