@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getPlaidClient, isPlaidConfigured } from "@/lib/plaid";
 import { syncPlaidItem } from "@/lib/plaid-sync";
+import { parsePlaidError } from "@/lib/plaid-errors";
 
 export async function POST(request: NextRequest) {
   if (!(await isPlaidConfigured())) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Plaid exchange error:", error);
     return NextResponse.json(
-      { error: "Failed to connect bank account" },
+      { error: parsePlaidError(error) },
       { status: 500 }
     );
   }

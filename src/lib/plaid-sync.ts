@@ -8,11 +8,23 @@ import {
 import { ACCOUNT_COLORS } from "@/lib/constants";
 import { isLiability } from "@/lib/constants";
 import {
-  invalidateCategoryIndexCache,
-  suggestCategoryFromHistory,
-} from "@/lib/auto-categorize-service";
+  isPlaidErrorCode,
+  normalizePlaidCursor,
+  parsePlaidError,
+} from "@/lib/plaid-errors";
 
-export async function syncPlaidItem(plaidItemRecordId: string) {
+export interface SyncPlaidItemResult {
+  accountsSynced: number;
+  balancesUpdated: number;
+  transactionsSynced: number;
+  newTransactions: number;
+  updatedTransactions: number;
+  initialSync: boolean;
+}
+
+export async function syncPlaidItem(
+  plaidItemRecordId: string
+): Promise<SyncPlaidItemResult> {
   const item = await db.plaidItem.findUnique({
     where: { id: plaidItemRecordId },
     include: { accounts: true },
@@ -28,6 +40,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
 
   const accountMap = new Map(item.accounts.map((a) => [a.plaidAccountId, a]));
   let colorIndex = 0;
+  let balancesUpdated = 0;
 
   for (const plaidAccount of accountsResponse.data.accounts) {
     const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
@@ -46,9 +59,12 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
           type,
           balance: accountBalance,
           mask: plaidAccount.mask,
+          isArchived: false,
+          isLinked: true,
           lastSyncedAt: new Date(),
         },
       });
+      balancesUpdated++;
     } else {
       await db.account.create({
         data: {
@@ -67,23 +83,63 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
         },
       });
       colorIndex++;
+      balancesUpdated++;
     }
   }
 
   const allAccounts = await db.account.findMany({
-    where: { plaidItemId: item.id },
+    where: { plaidItemId: item.id, isArchived: false },
   });
+  const accountIds = new Set(allAccounts.map((a) => a.id));
 
-  let cursor = item.transactionsCursor ?? undefined;
+  const existingByPlaidId = new Map<
+    string,
+    { id: string; categoryId: string | null }
+  >();
+  const allTxs = await db.transaction.findMany({
+    orderBy: { date: "desc" },
+  });
+  for (const tx of allTxs) {
+    if (!tx.plaidTransactionId || !accountIds.has(tx.accountId)) continue;
+    existingByPlaidId.set(tx.plaidTransactionId, {
+      id: tx.id,
+      categoryId: tx.categoryId,
+    });
+  }
+
+  let cursor = normalizePlaidCursor(item.transactionsCursor);
+  const initialSync = !cursor;
+
+  if (initialSync) {
+    try {
+      await plaid.transactionsRefresh({ access_token: item.accessToken });
+    } catch (error) {
+      if (!isPlaidErrorCode(error, "PRODUCT_NOT_READY")) {
+        console.warn("transactionsRefresh during initial sync:", parsePlaidError(error));
+      }
+    }
+  }
+
   let hasMore = true;
-  let added = 0;
-  let autoCategorized = 0;
+  let newTransactions = 0;
+  let updatedTransactions = 0;
+  let retriedInvalidCursor = false;
 
   while (hasMore) {
-    const syncResponse = await plaid.transactionsSync({
-      access_token: item.accessToken,
-      cursor,
-    });
+    let syncResponse;
+    try {
+      syncResponse = await plaid.transactionsSync({
+        access_token: item.accessToken,
+        cursor,
+      });
+    } catch (error) {
+      if (isPlaidErrorCode(error, "INVALID_CURSOR") && !retriedInvalidCursor) {
+        cursor = undefined;
+        retriedInvalidCursor = true;
+        continue;
+      }
+      throw error;
+    }
 
     const { added: addedTxs, modified, removed, next_cursor, has_more } =
       syncResponse.data;
@@ -97,23 +153,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
       const merchant = tx.merchant_name || null;
       const isTransfer = tx.personal_finance_category?.primary === "TRANSFER";
 
-      const existing = await db.transaction.findFirst({
-        where: { plaidTransactionId: tx.transaction_id },
-      });
-
-      let categoryId: string | null | undefined;
-      if (!isTransfer && !existing?.categoryId) {
-        const suggestion = await suggestCategoryFromHistory({
-          description,
-          merchant,
-          amount,
-          accountId: account.id,
-        });
-        if (suggestion) {
-          categoryId = suggestion.categoryId;
-          if (!existing) autoCategorized++;
-        }
-      }
+      const existing = existingByPlaidId.get(tx.transaction_id);
 
       if (existing) {
         await db.transaction.update({
@@ -123,11 +163,11 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
             description,
             merchant,
             date: new Date(tx.date),
-            ...(categoryId ? { categoryId } : {}),
           },
         });
+        updatedTransactions++;
       } else {
-        await db.transaction.create({
+        const created = await db.transaction.create({
           data: {
             accountId: account.id,
             plaidTransactionId: tx.transaction_id,
@@ -136,17 +176,22 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
             merchant,
             date: new Date(tx.date),
             isTransfer,
-            categoryId: categoryId ?? null,
+            categoryId: null,
           },
         });
+        existingByPlaidId.set(tx.transaction_id, {
+          id: created.id,
+          categoryId: null,
+        });
+        newTransactions++;
       }
-      added++;
     }
 
     for (const removedTx of removed) {
       await db.transaction.deleteMany({
         where: { plaidTransactionId: removedTx.transaction_id },
       });
+      existingByPlaidId.delete(removedTx.transaction_id);
     }
 
     cursor = next_cursor;
@@ -156,19 +201,18 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
   await db.plaidItem.update({
     where: { id: item.id },
     data: {
-      transactionsCursor: cursor,
+      transactionsCursor: cursor ?? null,
       lastSyncedAt: new Date(),
     },
   });
 
-  if (autoCategorized > 0) {
-    invalidateCategoryIndexCache();
-  }
-
   return {
     accountsSynced: allAccounts.length,
-    transactionsSynced: added,
-    autoCategorized,
+    balancesUpdated,
+    transactionsSynced: newTransactions + updatedTransactions,
+    newTransactions,
+    updatedTransactions,
+    initialSync,
   };
 }
 
@@ -189,6 +233,13 @@ export async function getConnectedBanks() {
       },
     },
   });
+}
+
+export function sanitizePlaidItemForClient<
+  T extends { accessToken?: string; itemId?: string }
+>(item: T): Omit<T, "accessToken"> {
+  const { accessToken: _removed, ...safe } = item;
+  return safe;
 }
 
 export interface AvailableSyncedAccount {

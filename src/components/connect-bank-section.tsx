@@ -119,7 +119,7 @@ export function ConnectBankSection() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Sync failed");
-      setSuccess(`Synced ${data.accountsSynced} accounts and ${data.transactionsSynced} transactions`);
+      setSuccess(data.message || `Synced ${data.accountsSynced} accounts`);
       router.refresh();
       await fetchConnections();
     } catch (err) {
