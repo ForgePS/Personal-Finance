@@ -79,12 +79,8 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-2xl">
-        <div className="mb-8 flex justify-center">
-          <LogoMark
-            size="xl"
-            variant="full"
-            priority
-          />
+        <div className="mb-6 flex justify-center px-2">
+          <LogoMark size="xl" variant="full" priority />
         </div>
         <p className="mb-8 text-center text-sm text-slate-400">
           {inviteToken ? "Sign in to join a shared household" : "Sign in to your workspace"}
