@@ -5,6 +5,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Money Command — Personal Finance",
   description: "Track accounts, transactions, budgets, and goals in one place.",
+  icons: {
+    icon: "/logo-icon.png",
+    apple: "/favicon-192.png",
+  },
 };
 
 export default function RootLayout({

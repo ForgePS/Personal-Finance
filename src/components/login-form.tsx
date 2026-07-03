@@ -79,18 +79,16 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-2xl">
-        <div className="mb-8">
+        <div className="mb-8 flex justify-center">
           <LogoMark
-            size="lg"
+            size="xl"
+            variant="full"
             priority
-            title="Money Command"
-            subtitle={
-              inviteToken ? "Sign in to join a shared household" : "Sign in to your workspace"
-            }
-            titleClassName="text-xl text-white"
-            subtitleClassName="text-slate-400"
           />
         </div>
+        <p className="mb-8 text-center text-sm text-slate-400">
+          {inviteToken ? "Sign in to join a shared household" : "Sign in to your workspace"}
+        </p>
 
         {inviteToken && (
           <div className="mb-6 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-sm text-indigo-100">

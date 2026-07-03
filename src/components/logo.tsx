@@ -8,20 +8,31 @@ import { cn } from "@/lib/utils";
 const SIZES = {
   sm: 32,
   md: 40,
-  lg: 48,
+  lg: 56,
+  xl: 220,
 } as const;
 
 type LogoSize = keyof typeof SIZES;
+type LogoVariant = "icon" | "full";
 
 interface LogoProps {
   size?: LogoSize;
+  variant?: LogoVariant;
   className?: string;
   priority?: boolean;
 }
 
-export function Logo({ size = "md", className, priority = false }: LogoProps) {
+export function Logo({
+  size = "md",
+  variant = "icon",
+  className,
+  priority = false,
+}: LogoProps) {
   const [failed, setFailed] = useState(false);
+  const src = variant === "full" ? "/logo.png" : "/logo-icon.png";
   const px = SIZES[size];
+  const aspect = variant === "full" ? 1 : 0.62;
+  const height = variant === "full" ? px : Math.round(px * aspect);
 
   if (failed) {
     return (
@@ -39,14 +50,14 @@ export function Logo({ size = "md", className, priority = false }: LogoProps) {
 
   return (
     <Image
-      src="/logo.png"
+      src={src}
       alt="Money Command"
       width={px}
-      height={px}
+      height={height}
       priority={priority}
       onError={() => setFailed(true)}
       className={cn("object-contain", className)}
-      style={{ width: px, height: px }}
+      style={{ width: px, height }}
     />
   );
 }
@@ -56,26 +67,41 @@ interface LogoMarkProps extends LogoProps {
   subtitle?: string;
   titleClassName?: string;
   subtitleClassName?: string;
+  showTitle?: boolean;
 }
 
 export function LogoMark({
   size = "md",
+  variant = "icon",
   className,
   priority,
   title = "Money Command",
   subtitle,
   titleClassName,
   subtitleClassName,
+  showTitle = true,
 }: LogoMarkProps) {
+  if (variant === "full") {
+    return (
+      <div className={cn("flex justify-center", className)}>
+        <Logo size={size} variant="full" priority={priority} />
+      </div>
+    );
+  }
+
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <Logo size={size} priority={priority} />
-      <div className="min-w-0">
-        <p className={cn("truncate font-bold", titleClassName)}>{title}</p>
-        {subtitle ? (
-          <p className={cn("truncate text-xs", subtitleClassName)}>{subtitle}</p>
-        ) : null}
-      </div>
+      <Logo size={size} variant="icon" priority={priority} />
+      {(showTitle || subtitle) && (
+        <div className="min-w-0">
+          {showTitle ? (
+            <p className={cn("truncate font-bold", titleClassName)}>{title}</p>
+          ) : null}
+          {subtitle ? (
+            <p className={cn("truncate text-xs", subtitleClassName)}>{subtitle}</p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

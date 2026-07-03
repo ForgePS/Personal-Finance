@@ -71,9 +71,9 @@ export function Sidebar() {
       <div className="px-4 py-6">
         <LogoMark
           size="md"
-          title="Money Command"
+          variant="icon"
+          showTitle={false}
           subtitle="Personal Finance"
-          titleClassName="text-lg text-white"
           subtitleClassName="text-indigo-300"
         />
       </div>
@@ -146,9 +146,9 @@ export function Sidebar() {
         <div className="min-w-0 flex-1">
           <LogoMark
             size="sm"
-            title="Money Command"
+            variant="icon"
+            showTitle={false}
             subtitle="Personal Finance"
-            titleClassName="text-sm text-slate-900"
             subtitleClassName="text-slate-500"
           />
         </div>
