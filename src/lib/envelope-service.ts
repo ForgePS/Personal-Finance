@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { invalidateCategoryIndexCache } from "@/lib/auto-categorize-service";
 import { getMonthEnd } from "@/lib/utils";
 import { startOfMonth } from "date-fns";
 import { isLiability } from "@/lib/constants";
@@ -415,6 +416,8 @@ export async function reconcileTransaction(
     where: { id: transactionId },
     data: { categoryId },
   });
+
+  invalidateCategoryIndexCache();
 
   return getEnvelopeData(targetMonth);
 }

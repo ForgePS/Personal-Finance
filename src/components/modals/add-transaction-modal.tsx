@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -43,6 +43,8 @@ export function AddTransactionModal({
     type: "expense" as "expense" | "income",
     isDebtPayment: false,
   });
+  const [categoryHint, setCategoryHint] = useState<string | null>(null);
+  const categoryTouchedRef = useRef(false);
 
   const accountOptions = useMemo(() => buildAccountSelectOptions(accounts), [accounts]);
   const liabilityOptions = useMemo(() => buildLiabilityAccountOptions(accounts), [accounts]);
@@ -51,6 +53,8 @@ export function AddTransactionModal({
   useEffect(() => {
     if (isOpen) {
       setError("");
+      categoryTouchedRef.current = false;
+      setCategoryHint(null);
       fetch("/api/accounts")
         .then((r) => r.json())
         .then((accts: Account[]) => {
@@ -64,6 +68,56 @@ export function AddTransactionModal({
         });
     }
   }, [isOpen, defaultAccountId, form.accountId]);
+
+  useEffect(() => {
+    if (!isOpen || categoryTouchedRef.current || form.isDebtPayment) {
+      return;
+    }
+
+    const description = form.description.trim();
+    if (description.length < 3) {
+      setCategoryHint(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const rawAmount = parseFloat(form.amount);
+      const amountMag = rawAmount > 0 ? rawAmount : 1;
+      const amount = form.type === "expense" ? -amountMag : amountMag;
+
+      const params = new URLSearchParams({
+        description,
+        amount: String(amount),
+      });
+      if (form.merchant.trim()) {
+        params.set("merchant", form.merchant.trim());
+      }
+
+      try {
+        const res = await fetch(`/api/transactions/suggest-category?${params}`);
+        const data = await res.json();
+        if (data.categoryId && !categoryTouchedRef.current) {
+          setForm((f) => ({ ...f, categoryId: data.categoryId }));
+          setCategoryHint(
+            data.categoryName
+              ? `Suggested from your history: ${data.categoryName}`
+              : "Suggested from your past categorizations"
+          );
+        }
+      } catch {
+        setCategoryHint(null);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [
+    isOpen,
+    form.description,
+    form.merchant,
+    form.amount,
+    form.type,
+    form.isDebtPayment,
+  ]);
 
   const categoryType = form.type === "income" ? "INCOME" : "EXPENSE";
 
@@ -107,6 +161,8 @@ export function AddTransactionModal({
 
       router.refresh();
       onClose();
+      categoryTouchedRef.current = false;
+      setCategoryHint(null);
       setForm({
         accountId: defaultAccountId || "",
         debtAccountId: "",
@@ -138,15 +194,17 @@ export function AddTransactionModal({
             <button
               key={t}
               type="button"
-              onClick={() =>
+              onClick={() => {
+                categoryTouchedRef.current = false;
+                setCategoryHint(null);
                 setForm({
                   ...form,
                   type: t,
                   categoryId: "",
                   isDebtPayment: false,
                   debtAccountId: "",
-                })
-              }
+                });
+              }}
               className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
                 form.type === t
                   ? t === "expense"
@@ -188,9 +246,14 @@ export function AddTransactionModal({
         <CategorySelectField
           type={categoryType}
           value={form.categoryId}
-          onChange={(categoryId) => setForm({ ...form, categoryId })}
+          onChange={(categoryId) => {
+            categoryTouchedRef.current = true;
+            setCategoryHint(null);
+            setForm({ ...form, categoryId });
+          }}
           label="Category"
           emptyLabel="Select category..."
+          hint={categoryHint}
         />
 
         {isExpense && liabilityOptions.length > 0 && (

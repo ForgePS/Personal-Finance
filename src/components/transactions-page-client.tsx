@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { EditableTransactionList, type TransactionListItem } from "@/components/editable-transaction-list";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { buildAccountSelectOptions, type AccountOption } from "@/lib/account-utils";
 
@@ -24,6 +24,7 @@ export function TransactionsPageClient({
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "income" | "expense" | "debt">("all");
+  const [autoCatLoading, setAutoCatLoading] = useState(false);
   const selectedAccountId = accountFilter?.id ?? "";
 
   const accountOptions = useMemo(
@@ -57,6 +58,34 @@ export function TransactionsPageClient({
   const totalExpense = filtered
     .filter((t) => !t.isTransfer && t.amount < 0)
     .reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  const uncategorizedCount = useMemo(
+    () =>
+      initialTransactions.filter(
+        (t) => !t.categoryId && !t.isTransfer && !t.debtAccountId
+      ).length,
+    [initialTransactions]
+  );
+
+  const handleAutoCategorize = async () => {
+    setAutoCatLoading(true);
+    try {
+      const ids = initialTransactions
+        .filter((t) => !t.categoryId && !t.isTransfer && !t.debtAccountId)
+        .map((t) => t.id);
+      const res = await fetch("/api/transactions/auto-categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json();
+      if (data.applied > 0) {
+        router.refresh();
+      }
+    } finally {
+      setAutoCatLoading(false);
+    }
+  };
 
   const handleAccountChange = (accountId: string) => {
     if (!accountId) {
@@ -141,6 +170,21 @@ export function TransactionsPageClient({
 
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">Click any row to edit, or use Select for bulk changes</p>
+          {uncategorizedCount > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={autoCatLoading}
+              onClick={handleAutoCategorize}
+              className="w-full sm:w-auto"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {autoCatLoading
+                ? "Learning..."
+                : `Auto-categorize ${uncategorizedCount}`}
+            </Button>
+          )}
         </div>
         <EditableTransactionList
           transactions={filtered}

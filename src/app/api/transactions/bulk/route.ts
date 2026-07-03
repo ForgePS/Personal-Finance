@@ -7,6 +7,7 @@ import {
   syncDebtPaymentBalanceChange,
   validateDebtPayment,
 } from "@/lib/debt-payment-service";
+import { invalidateCategoryIndexCache } from "@/lib/auto-categorize-service";
 
 interface BulkUpdates {
   categoryId?: string | null;
@@ -147,6 +148,10 @@ export async function PATCH(request: NextRequest) {
       const reason = result.reason ?? "unknown";
       results.skippedReasons[reason] = (results.skippedReasons[reason] ?? 0) + 1;
     }
+  }
+
+  if (updates.categoryId && results.updated > 0) {
+    invalidateCategoryIndexCache();
   }
 
   return NextResponse.json(results);

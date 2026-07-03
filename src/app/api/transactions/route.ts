@@ -6,6 +6,10 @@ import {
   applyDebtPaymentBalance,
   validateDebtPayment,
 } from "@/lib/debt-payment-service";
+import {
+  invalidateCategoryIndexCache,
+  suggestCategoryFromHistory,
+} from "@/lib/auto-categorize-service";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -77,10 +81,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let categoryId: string | null = body.categoryId || null;
+  if (!categoryId && !debtAccountId) {
+    const suggestion = await suggestCategoryFromHistory({
+      description: body.description,
+      merchant: body.merchant || null,
+      amount,
+      accountId: body.accountId,
+    });
+    if (suggestion) {
+      categoryId = suggestion.categoryId;
+    }
+  }
+
   const transaction = await db.transaction.create({
     data: {
       accountId: body.accountId,
-      categoryId: body.categoryId || null,
+      categoryId,
       debtAccountId,
       date: new Date(body.date),
       amount,
@@ -95,6 +112,10 @@ export async function POST(request: NextRequest) {
   await updateAccountBalanceFromTransaction(body.accountId, amount);
   if (debtAccountId && amount < 0) {
     await applyDebtPaymentBalance(body.accountId, debtAccountId, amount);
+  }
+
+  if (categoryId) {
+    invalidateCategoryIndexCache();
   }
 
   return NextResponse.json(transaction, { status: 201 });

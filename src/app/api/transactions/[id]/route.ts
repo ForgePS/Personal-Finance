@@ -8,6 +8,7 @@ import {
   syncDebtPaymentBalanceChange,
   validateDebtPayment,
 } from "@/lib/debt-payment-service";
+import { invalidateCategoryIndexCache } from "@/lib/auto-categorize-service";
 
 const transactionInclude = {
   category: true,
@@ -134,6 +135,10 @@ export async function PATCH(
       amount: newAmount,
     }
   );
+
+  if (body.categoryId !== undefined && body.categoryId) {
+    invalidateCategoryIndexCache();
+  }
 
   return NextResponse.json(transaction);
 }

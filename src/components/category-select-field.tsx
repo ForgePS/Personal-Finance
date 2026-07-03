@@ -14,6 +14,7 @@ interface CategorySelectFieldProps {
   label?: string;
   emptyLabel?: string;
   required?: boolean;
+  hint?: string | null;
 }
 
 export function CategorySelectField({
@@ -23,6 +24,7 @@ export function CategorySelectField({
   label = "Category",
   emptyLabel = "Uncategorized",
   required = false,
+  hint = null,
 }: CategorySelectFieldProps) {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,7 +104,7 @@ export function CategorySelectField({
           )}
         </div>
         <p className="text-xs text-slate-500">
-          Add or edit {type === "INCOME" ? "income" : "expense"} categories without leaving this form.
+          {hint ?? `Add or edit ${type === "INCOME" ? "income" : "expense"} categories without leaving this form.`}
         </p>
       </div>
 

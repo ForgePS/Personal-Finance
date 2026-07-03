@@ -7,6 +7,10 @@ import {
 } from "@/lib/plaid";
 import { ACCOUNT_COLORS } from "@/lib/constants";
 import { isLiability } from "@/lib/constants";
+import {
+  invalidateCategoryIndexCache,
+  suggestCategoryFromHistory,
+} from "@/lib/auto-categorize-service";
 
 export async function syncPlaidItem(plaidItemRecordId: string) {
   const item = await db.plaidItem.findUnique({
@@ -73,6 +77,7 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
   let cursor = item.transactionsCursor ?? undefined;
   let hasMore = true;
   let added = 0;
+  let autoCategorized = 0;
 
   while (hasMore) {
     const syncResponse = await plaid.transactionsSync({
@@ -90,25 +95,51 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
       const amount = convertPlaidAmount(tx.amount);
       const description = tx.merchant_name || tx.name;
       const merchant = tx.merchant_name || null;
+      const isTransfer = tx.personal_finance_category?.primary === "TRANSFER";
 
-      await db.transaction.upsert({
+      const existing = await db.transaction.findFirst({
         where: { plaidTransactionId: tx.transaction_id },
-        update: {
-          amount,
-          description,
-          merchant,
-          date: new Date(tx.date),
-        },
-        create: {
-          accountId: account.id,
-          plaidTransactionId: tx.transaction_id,
-          amount,
-          description,
-          merchant,
-          date: new Date(tx.date),
-          isTransfer: tx.personal_finance_category?.primary === "TRANSFER",
-        },
       });
+
+      let categoryId: string | null | undefined;
+      if (!isTransfer && !existing?.categoryId) {
+        const suggestion = await suggestCategoryFromHistory({
+          description,
+          merchant,
+          amount,
+          accountId: account.id,
+        });
+        if (suggestion) {
+          categoryId = suggestion.categoryId;
+          if (!existing) autoCategorized++;
+        }
+      }
+
+      if (existing) {
+        await db.transaction.update({
+          where: { id: existing.id },
+          data: {
+            amount,
+            description,
+            merchant,
+            date: new Date(tx.date),
+            ...(categoryId ? { categoryId } : {}),
+          },
+        });
+      } else {
+        await db.transaction.create({
+          data: {
+            accountId: account.id,
+            plaidTransactionId: tx.transaction_id,
+            amount,
+            description,
+            merchant,
+            date: new Date(tx.date),
+            isTransfer,
+            categoryId: categoryId ?? null,
+          },
+        });
+      }
       added++;
     }
 
@@ -130,7 +161,15 @@ export async function syncPlaidItem(plaidItemRecordId: string) {
     },
   });
 
-  return { accountsSynced: allAccounts.length, transactionsSynced: added };
+  if (autoCategorized > 0) {
+    invalidateCategoryIndexCache();
+  }
+
+  return {
+    accountsSynced: allAccounts.length,
+    transactionsSynced: added,
+    autoCategorized,
+  };
 }
 
 export async function getConnectedBanks() {
