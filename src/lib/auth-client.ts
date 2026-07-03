@@ -31,7 +31,32 @@ export function isFirebaseAuthConfigured() {
   );
 }
 
-export async function signInWithEmail(email: string, password: string) {
+export function formatAuthError(error: unknown): string {
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : "";
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Incorrect email or password. If this is your first time, click “Need an account? Sign up” below.";
+    case "auth/email-already-in-use":
+      return "An account with this email already exists. Sign in instead.";
+    case "auth/weak-password":
+      return "Password must be at least 6 characters.";
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
+    case "auth/operation-not-allowed":
+      return "Email/password sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Wait a few minutes and try again.";
+    default:
+      return error instanceof Error ? error.message : "Authentication failed";
+  }
+}
+
   const auth = getFirebaseAuth();
   return signInWithEmailAndPassword(auth, email, password);
 }
