@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { invalidateCategoryIndexCache } from "@/lib/auto-categorize-service";
+import { getTenantId } from "@/lib/tenant-context";
+import { envelopePoolUniqueWhere, envelopeUniqueWhere } from "@/lib/tenant-where";
 import { getMonthEnd } from "@/lib/utils";
 import { startOfMonth } from "date-fns";
 import { isLiability } from "@/lib/constants";
@@ -60,10 +62,10 @@ export async function getEnvelopeData(month?: Date) {
   });
   const categoryNames = new Map(expenseCategories.map((c) => [c.id, c.name]));
 
-  let pool = await db.envelopePool.findUnique({ where: { month: targetMonth } });
+  let pool = await db.envelopePool.findUnique({ where: envelopePoolUniqueWhere(targetMonth) });
   if (!pool) {
     pool = await db.envelopePool.create({
-      data: { month: targetMonth, totalFunds: 0 },
+      data: { month: targetMonth, totalFunds: 0, tenantId: getTenantId() },
     });
   }
 
@@ -253,7 +255,7 @@ export async function createEnvelope(
   }
 
   const existing = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(categoryId, targetMonth),
   });
 
   if (existing) {
@@ -275,6 +277,7 @@ export async function createEnvelope(
 
   await db.envelope.create({
     data: {
+      tenantId: getTenantId(),
       categoryId,
       month: targetMonth,
       allocated: 0,
@@ -355,10 +358,10 @@ export async function fundPoolFromAccounts(
     }
   }
 
-  let pool = await db.envelopePool.findUnique({ where: { month: targetMonth } });
+  let pool = await db.envelopePool.findUnique({ where: envelopePoolUniqueWhere(targetMonth) });
   if (!pool) {
     pool = await db.envelopePool.create({
-      data: { month: targetMonth, totalFunds: 0 },
+      data: { month: targetMonth, totalFunds: 0, tenantId: getTenantId() },
     });
   }
 
@@ -366,6 +369,7 @@ export async function fundPoolFromAccounts(
     const account = accountMap.get(funding.accountId)!;
     await db.envelopePoolFunding.create({
       data: {
+        tenantId: getTenantId(),
         month: targetMonth,
         accountId: funding.accountId,
         amount: funding.amount,
@@ -374,6 +378,7 @@ export async function fundPoolFromAccounts(
     });
     await db.transaction.create({
       data: {
+        tenantId: getTenantId(),
         accountId: funding.accountId,
         amount: -funding.amount,
         description: "Envelope pool funding",
@@ -402,7 +407,7 @@ export async function reconcileTransaction(
   const targetMonth = startOfMonth(month);
 
   const envelope = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(categoryId, targetMonth),
   });
   if (!envelope || envelope.isActive === false) {
     throw new Error("No active envelope found for this category");
@@ -425,9 +430,9 @@ export async function reconcileTransaction(
 export async function updateEnvelopePool(month: Date, totalFunds: number) {
   const targetMonth = startOfMonth(month);
   return db.envelopePool.upsert({
-    where: { month: targetMonth },
+    where: envelopePoolUniqueWhere(targetMonth),
     update: { totalFunds },
-    create: { month: targetMonth, totalFunds },
+    create: { month: targetMonth, totalFunds, tenantId: getTenantId() },
   });
 }
 
@@ -441,7 +446,7 @@ export async function fundEnvelope(categoryId: string, month: Date, amount: numb
   }
 
   const envelope = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(categoryId, targetMonth),
   });
 
   if (!envelope || envelope.isActive === false) throw new Error("Envelope not found");
@@ -453,6 +458,7 @@ export async function fundEnvelope(categoryId: string, month: Date, amount: numb
     }),
     db.envelopeTransfer.create({
       data: {
+        tenantId: getTenantId(),
         month: targetMonth,
         amount,
         fromCategoryId: null,
@@ -484,12 +490,12 @@ export async function transferBetweenEnvelopes(
   }
 
   const toRecord = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId: toCategoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(toCategoryId, targetMonth),
   });
   if (!toRecord || toRecord.isActive === false) throw new Error("Destination envelope not found");
 
   const fromRecord = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId: fromCategoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(fromCategoryId, targetMonth),
   });
   if (!fromRecord || fromRecord.isActive === false) throw new Error("Source envelope not found");
 
@@ -504,6 +510,7 @@ export async function transferBetweenEnvelopes(
     }),
     db.envelopeTransfer.create({
       data: {
+        tenantId: getTenantId(),
         month: targetMonth,
         amount,
         fromCategoryId,
@@ -528,7 +535,7 @@ export async function returnToPool(categoryId: string, month: Date, amount: numb
   }
 
   const record = await db.envelope.findUnique({
-    where: { categoryId_month: { categoryId, month: targetMonth } },
+    where: envelopeUniqueWhere(categoryId, targetMonth),
   });
   if (!record || record.isActive === false) throw new Error("Envelope not found");
 
@@ -539,6 +546,7 @@ export async function returnToPool(categoryId: string, month: Date, amount: numb
     }),
     db.envelopeTransfer.create({
       data: {
+        tenantId: getTenantId(),
         month: targetMonth,
         amount,
         fromCategoryId: categoryId,

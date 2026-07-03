@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { getEnvelopeData } from "@/lib/envelope-service";
 import { formatDateKey, getMonthKey, toIsoStringRequired, parseEnvelopeMonthInput } from "@/lib/utils";
 import { EnvelopesPageClient } from "@/components/envelopes-page-client";
@@ -15,6 +16,7 @@ export default async function EnvelopesPage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
+  return withServerAuth(async () => {
   const { month: monthParam } = await searchParams;
   const monthKey = monthParam ?? getMonthKey(new Date());
   const month = parseEnvelopeMonthInput(monthKey);
@@ -48,4 +50,5 @@ export default async function EnvelopesPage({
       overBudgetCount={data.overBudgetCount}
     />
   );
+  });
 }

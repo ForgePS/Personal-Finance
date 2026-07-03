@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { getPaycheckPlannerData } from "@/lib/paycheck-planner-service";
 import { PaycheckPlannerPageClient } from "@/components/paycheck-planner-page-client";
 
@@ -14,8 +15,10 @@ export default async function PaycheckPlannerPage({
 }: {
   searchParams: Promise<{ accountId?: string }>;
 }) {
+  return withServerAuth(async () => {
   const params = await searchParams;
   const data = await getPaycheckPlannerData(params.accountId ?? null);
 
   return <PaycheckPlannerPageClient initialData={data} accounts={data.accounts} />;
+  });
 }

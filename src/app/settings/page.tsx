@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { Suspense } from "react";
 import { getSettingsData } from "@/lib/settings-service";
 import { SettingsPageClient } from "@/components/settings-page-client";
@@ -16,12 +17,13 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
+  return withServerAuth(async () => {
   const params = await searchParams;
   const data = await getSettingsData();
 
-  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals", "bank-linking"];
+  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals", "household", "bank-linking"];
   const initialTab = validTabs.includes(params.tab ?? "")
-    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals" | "bank-linking")
+    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals" | "household" | "bank-linking")
     : "categories";
 
   return (
@@ -47,4 +49,5 @@ export default async function SettingsPage({
       />
     </Suspense>
   );
+  });
 }

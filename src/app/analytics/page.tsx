@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getAnalyticsData } from "@/lib/analytics-service";
 import { AnalyticsPageClient } from "@/components/analytics-page-client";
 import { db } from "@/lib/db";
+import { withServerAuth } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
   title: "Analytics | Money Command",
@@ -15,6 +16,7 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ accountId?: string }>;
 }) {
+  return withServerAuth(async () => {
   const params = await searchParams;
   const accountId = params.accountId === "all" ? null : params.accountId ?? null;
 
@@ -28,4 +30,5 @@ export default async function AnalyticsPage({
   ]);
 
   return <AnalyticsPageClient data={data} accounts={accounts} />;
+  });
 }

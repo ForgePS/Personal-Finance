@@ -43,155 +43,235 @@ enum ScheduleAdjustmentStatus {
   REJECTED
 }
 
+enum TenantMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TenantInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Tenant {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  members   TenantMember[]
+  invites   TenantInvite[]
+}
+
+model TenantMember {
+  id        String           @id @default(cuid())
+  tenantId  String
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String           @unique
+  email     String
+  role      TenantMemberRole @default(OWNER)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([tenantId])
+}
+
+model TenantInvite {
+  id              String             @id @default(cuid())
+  tenantId        String
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email           String
+  token           String             @unique
+  invitedByUserId String
+  role            TenantMemberRole   @default(MEMBER)
+  status          TenantInviteStatus @default(PENDING)
+  expiresAt       DateTime
+  createdAt       DateTime           @default(now())
+  acceptedAt      DateTime?
+
+  @@index([tenantId])
+  @@index([email])
+}
+
 model PaySchedule {
-  id                String            @id @default(cuid())
-  name              String
-  amount            Float
-  frequency         ScheduleFrequency
-  dayOfWeek         Int?              // 0=Sun .. 6=Sat (weekly/biweekly)
-  dayOfMonth        Int?              // 1-31 (monthly)
-  secondDayOfMonth  Int?              // for semimonthly (e.g. 15)
-  customIntervalDays Int?             // for CUSTOM frequency
-  startDate         DateTime
-  endDate           DateTime?
-  categoryId        String?
-  category          Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  accountId         String?
-  account           Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  color             String            @default("#22c55e")
-  icon              String            @default("briefcase")
-  notes             String?
-  isActive          Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  tenantId           String
+  name               String
+  amount             Float
+  frequency          ScheduleFrequency
+  dayOfWeek          Int? // 0=Sun .. 6=Sat (weekly/biweekly)
+  dayOfMonth         Int? // 1-31 (monthly)
+  secondDayOfMonth   Int? // for semimonthly (e.g. 15)
+  customIntervalDays Int? // for CUSTOM frequency
+  startDate          DateTime
+  endDate            DateTime?
+  categoryId         String?
+  category           Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId          String?
+  account            Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  color              String            @default("#22c55e")
+  icon               String            @default("briefcase")
+  notes              String?
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([tenantId])
 }
 
 model ScheduledExpense {
-  id                String            @id @default(cuid())
-  name              String
-  amount            Float
-  frequency         ScheduleFrequency
-  dayOfWeek         Int?
-  dayOfMonth        Int?
-  secondDayOfMonth  Int?
+  id                 String            @id @default(cuid())
+  tenantId           String
+  name               String
+  amount             Float
+  frequency          ScheduleFrequency
+  dayOfWeek          Int?
+  dayOfMonth         Int?
+  secondDayOfMonth   Int?
   customIntervalDays Int?
-  startDate         DateTime
-  endDate           DateTime?
-  categoryId        String?
-  category          Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  accountId         String?
-  account           Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  color             String            @default("#f97316")
-  icon              String            @default("calendar")
-  notes             String?
-  isActive          Boolean           @default(true)
-  priority          Int               @default(50)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  startDate          DateTime
+  endDate            DateTime?
+  categoryId         String?
+  category           Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId          String?
+  account            Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  color              String            @default("#f97316")
+  icon               String            @default("calendar")
+  notes              String?
+  isActive           Boolean           @default(true)
+  priority           Int               @default(50)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@index([tenantId])
 }
 
 model ScheduleDateAdjustment {
   id            String                   @id @default(cuid())
+  tenantId      String
   sourceType    ScheduleSourceType
   scheduleId    String
-  occurrenceKey String                   @unique
+  occurrenceKey String
   originalDate  DateTime
   adjustedDate  DateTime
   status        ScheduleAdjustmentStatus @default(PENDING)
   notes         String?
   createdAt     DateTime                 @default(now())
   updatedAt     DateTime                 @updatedAt
+
+  @@unique([tenantId, occurrenceKey])
+  @@index([tenantId])
 }
 
 model Account {
-  id              String      @id @default(cuid())
-  name            String
-  type            AccountType
-  institution     String?
-  balance         Float       @default(0)
-  color           String      @default("#6366f1")
-  icon            String      @default("wallet")
-  isArchived      Boolean     @default(false)
-  isLinked        Boolean     @default(false)
-  plaidAccountId  String?     @unique
-  plaidItemId     String?
-  plaidItem       PlaidItem?  @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
-  mask            String?
-  lastSyncedAt    DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  transactions         Transaction[] @relation("OwnedTransactions")
-  linkedTransfers      Transaction[] @relation("TransferTransactions")
-  debtPayments         Transaction[] @relation("DebtPaymentAccount")
-  goals           Goal[]
-  paySchedules    PaySchedule[]
-  scheduledExpenses ScheduledExpense[]
+  id                   String                @id @default(cuid())
+  tenantId             String
+  name                 String
+  type                 AccountType
+  institution          String?
+  balance              Float                 @default(0)
+  color                String                @default("#6366f1")
+  icon                 String                @default("wallet")
+  isArchived           Boolean               @default(false)
+  isLinked             Boolean               @default(false)
+  plaidAccountId       String?
+  plaidItemId          String?
+  plaidItem            PlaidItem?            @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  mask                 String?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  transactions         Transaction[]         @relation("OwnedTransactions")
+  linkedTransfers      Transaction[]         @relation("TransferTransactions")
+  debtPayments         Transaction[]         @relation("DebtPaymentAccount")
+  goals                Goal[]
+  paySchedules         PaySchedule[]
+  scheduledExpenses    ScheduledExpense[]
   envelopePoolFundings EnvelopePoolFunding[]
+
+  @@unique([tenantId, plaidAccountId])
+  @@index([tenantId])
 }
 
 model PlaidItem {
-  id              String    @id @default(cuid())
-  itemId          String    @unique
-  accessToken     String
-  institutionId   String?
-  institutionName String?
+  id                 String    @id @default(cuid())
+  tenantId           String
+  itemId             String
+  accessToken        String
+  institutionId      String?
+  institutionName    String?
   transactionsCursor String?
-  lastSyncedAt    DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  accounts        Account[]
+  lastSyncedAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  accounts           Account[]
+
+  @@unique([tenantId, itemId])
+  @@index([tenantId])
 }
 
 model Category {
-  id          String       @id @default(cuid())
-  name        String
-  type        CategoryType
-  icon        String       @default("tag")
-  color       String       @default("#8b5cf6")
-  parentId    String?
-  parent      Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[]   @relation("CategoryHierarchy")
-  budgetable  Boolean      @default(true)
-  transactions Transaction[]
-  budgets      Budget[]
-  envelopes    Envelope[]
-  paySchedules PaySchedule[]
+  id                String             @id @default(cuid())
+  tenantId          String
+  name              String
+  type              CategoryType
+  icon              String             @default("tag")
+  color             String             @default("#8b5cf6")
+  parentId          String?
+  parent            Category?          @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children          Category[]         @relation("CategoryHierarchy")
+  budgetable        Boolean            @default(true)
+  transactions      Transaction[]
+  budgets           Budget[]
+  envelopes         Envelope[]
+  paySchedules      PaySchedule[]
   scheduledExpenses ScheduledExpense[]
+
+  @@index([tenantId])
 }
 
 model Transaction {
-  id                 String   @id @default(cuid())
-  accountId          String
-  account            Account  @relation("OwnedTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  transferAccountId  String?
-  transferAccount    Account? @relation("TransferTransactions", fields: [transferAccountId], references: [id], onDelete: SetNull)
-  debtAccountId      String?
-  debtAccount        Account? @relation("DebtPaymentAccount", fields: [debtAccountId], references: [id], onDelete: SetNull)
-  categoryId         String?
-  category           Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  date               DateTime
-  amount             Float
-  description        String
-  merchant           String?
-  notes              String?
-  isTransfer         Boolean  @default(false)
+  id                    String   @id @default(cuid())
+  tenantId              String
+  accountId             String
+  account               Account  @relation("OwnedTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  transferAccountId     String?
+  transferAccount       Account? @relation("TransferTransactions", fields: [transferAccountId], references: [id], onDelete: SetNull)
+  debtAccountId         String?
+  debtAccount           Account? @relation("DebtPaymentAccount", fields: [debtAccountId], references: [id], onDelete: SetNull)
+  categoryId            String?
+  category              Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  date                  DateTime
+  amount                Float
+  description           String
+  merchant              String?
+  notes                 String?
+  isTransfer            Boolean  @default(false)
   scheduleOccurrenceKey String?
-  plaidTransactionId String?  @unique
-  createdAt          DateTime @default(now())
+  plaidTransactionId    String?
+  createdAt             DateTime @default(now())
+
+  @@unique([tenantId, plaidTransactionId])
+  @@index([tenantId])
 }
 
 model Budget {
   id         String   @id @default(cuid())
+  tenantId   String
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   amount     Float
   month      DateTime
 
-  @@unique([categoryId, month])
+  @@unique([tenantId, categoryId, month])
+  @@index([tenantId])
 }
 
 model Goal {
   id            String    @id @default(cuid())
+  tenantId      String
   name          String
   targetAmount  Float
   currentAmount Float     @default(0)
@@ -201,18 +281,25 @@ model Goal {
   accountId     String?
   account       Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
   createdAt     DateTime  @default(now())
+
+  @@index([tenantId])
 }
 
 model EnvelopePool {
   id         String   @id @default(cuid())
-  month      DateTime @unique
+  tenantId   String
+  month      DateTime
   totalFunds Float    @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, month])
+  @@index([tenantId])
 }
 
 model Envelope {
   id           String   @id @default(cuid())
+  tenantId     String
   categoryId   String
   category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   month        DateTime
@@ -222,25 +309,32 @@ model Envelope {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([categoryId, month])
+  @@unique([tenantId, categoryId, month])
+  @@index([tenantId])
 }
 
 model EnvelopePoolFunding {
   id        String   @id @default(cuid())
+  tenantId  String
   month     DateTime
   accountId String
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   amount    Float
   note      String?
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model EnvelopeTransfer {
   id             String   @id @default(cuid())
+  tenantId       String
   month          DateTime
   amount         Float
   note           String?
   fromCategoryId String?
   toCategoryId   String?
   createdAt      DateTime @default(now())
+
+  @@index([tenantId])
 }

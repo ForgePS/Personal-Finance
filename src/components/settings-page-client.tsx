@@ -29,8 +29,10 @@ import {
   Plus,
   Pencil,
   KeyRound,
+  Users,
 } from "lucide-react";
 import { BankLinkingSettings } from "@/components/bank-linking-settings";
+import { HouseholdSettings } from "@/components/household-settings";
 import { isLiability } from "@/lib/constants";
 
 const TABS = [
@@ -39,6 +41,7 @@ const TABS = [
   { id: "pay-schedules", label: "Pay Schedules", icon: Briefcase },
   { id: "accounts", label: "Accounts", icon: Landmark },
   { id: "goals", label: "Goals", icon: Target },
+  { id: "household", label: "Household", icon: Users },
   { id: "bank-linking", label: "Bank Linking", icon: KeyRound },
 ] as const;
 
@@ -255,6 +258,8 @@ export function SettingsPageClient({
           </div>
         </Card>
       )}
+
+      {tab === "household" && <HouseholdSettings />}
 
       {tab === "bank-linking" && <BankLinkingSettings />}
 

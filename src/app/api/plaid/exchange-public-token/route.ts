@@ -3,8 +3,10 @@ import { db } from "@/lib/db";
 import { getPlaidClient, isPlaidConfigured } from "@/lib/plaid";
 import { syncPlaidItem } from "@/lib/plaid-sync";
 import { parsePlaidError } from "@/lib/plaid-errors";
+import { withAuth } from "@/lib/api-auth";
+import { withTenantData, plaidItemUniqueWhere } from "@/lib/tenant-where";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json({ error: "Plaid is not configured" }, { status: 503 });
   }
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     const exchange = await plaid.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = exchange.data;
 
-    const existing = await db.plaidItem.findUnique({ where: { itemId: item_id } });
+    const existing = await db.plaidItem.findUnique({ where: plaidItemUniqueWhere(item_id) });
     if (existing) {
       const syncResult = await syncPlaidItem(existing.id);
       return NextResponse.json({
@@ -33,12 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     const plaidItem = await db.plaidItem.create({
-      data: {
+      data: withTenantData({
         itemId: item_id,
         accessToken: access_token,
         institutionId: institution?.institution_id ?? null,
         institutionName: institution?.name ?? "Connected Bank",
-      },
+      }),
     });
 
     const syncResult = await syncPlaidItem(plaidItem.id);
@@ -56,4 +58,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

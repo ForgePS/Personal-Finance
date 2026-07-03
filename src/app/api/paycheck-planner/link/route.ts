@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { linkTransactionToOccurrence } from "@/lib/paycheck-planner-service";
+import { withAuth } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const transactionId = String(body.transactionId ?? "");
   const occurrenceKey =
@@ -15,4 +16,4 @@ export async function POST(request: NextRequest) {
 
   const updated = await linkTransactionToOccurrence(transactionId, occurrenceKey);
   return NextResponse.json(updated);
-}
+});

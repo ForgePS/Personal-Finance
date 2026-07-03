@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getDashboardData } from "@/lib/services";
 import { resolveDashboardAccountId } from "@/lib/dashboard-accounts";
+import { withAuth } from "@/lib/api-auth";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest, auth) => {
   const monthParam = request.nextUrl.searchParams.get("month");
   const accountIdParam = request.nextUrl.searchParams.get("accountId");
   const month = monthParam ? new Date(monthParam) : undefined;
@@ -16,4 +17,4 @@ export async function GET(request: NextRequest) {
 
   const data = await getDashboardData(month, accountId);
   return NextResponse.json(data);
-}
+});

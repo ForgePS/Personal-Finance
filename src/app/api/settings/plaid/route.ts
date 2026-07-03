@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPlaidCredentials, savePlaidCredentials } from "@/lib/plaid-config";
+import { withAuth } from "@/lib/api-auth";
 
-export async function GET() {
+export const GET = withAuth(async () => {
   const creds = await getPlaidCredentials();
   return NextResponse.json({
     configured: Boolean(creds),
@@ -9,9 +10,9 @@ export async function GET() {
     env: creds?.env ?? "production",
     hasSecret: Boolean(creds?.secret),
   });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
 
   if (!body.clientId || !body.secret) {
@@ -32,4 +33,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Failed to save Plaid keys";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

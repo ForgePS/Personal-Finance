@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
@@ -22,6 +23,7 @@ export default async function AccountDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  return withServerAuth(async () => {
   const { id } = await params;
   const account = await db.account.findUnique({
     where: { id },
@@ -164,4 +166,5 @@ export default async function AccountDetailPage({
       </Card>
     </div>
   );
+  });
 }

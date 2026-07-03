@@ -3,8 +3,9 @@ import {
   createScheduleDateAdjustment,
   updateExpensePriority,
 } from "@/lib/paycheck-planner-service";
+import { withAuth } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
 
   if (body.action === "update_priority") {
@@ -44,4 +45,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(adjustment, { status: 201 });
-}
+});

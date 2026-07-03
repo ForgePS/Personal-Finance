@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getTenantId } from "@/lib/tenant-context";
 import {
   convertPlaidAmount,
   getPlaidClient,
@@ -66,6 +67,7 @@ export async function syncPlaidItem(
     } else {
       await db.account.create({
         data: {
+          tenantId: getTenantId(),
           name: plaidAccount.name,
           type,
           institution: item.institutionName,
@@ -167,6 +169,7 @@ export async function syncPlaidItem(
       } else {
         const created = await db.transaction.create({
           data: {
+            tenantId: getTenantId(),
             accountId: account.id,
             plaidTransactionId: tx.transaction_id,
             amount,
@@ -338,6 +341,7 @@ export async function importSyncedAccount(
 
   return db.account.create({
     data: {
+      tenantId: getTenantId(),
       name: displayName,
       type,
       institution: item.institutionName,

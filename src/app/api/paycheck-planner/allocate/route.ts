@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applyPaycheckAllocation } from "@/lib/paycheck-planner-service";
+import { withAuth } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const accountId = String(body.accountId ?? "");
   const allocations = Array.isArray(body.allocations)
@@ -28,4 +29,4 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-}
+});

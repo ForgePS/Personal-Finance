@@ -61,6 +61,9 @@ export const COLLECTIONS = {
   paySchedules: "paySchedules",
   scheduledExpenses: "scheduledExpenses",
   scheduleDateAdjustments: "scheduleDateAdjustments",
+  tenants: "tenants",
+  tenantMembers: "tenantMembers",
+  tenantInvites: "tenantInvites",
 } as const;
 
 export function toDate(value: unknown): Date {

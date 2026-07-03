@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { getDashboardData } from "@/lib/services";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CashFlowPage() {
+  return withServerAuth(async () => {
   const data = await getDashboardData();
 
   const avgIncome =
@@ -155,4 +157,5 @@ export default async function CashFlowPage() {
       </Card>
     </div>
   );
+  });
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { getDashboardData } from "@/lib/services";
 import { resolveDashboardAccountId } from "@/lib/dashboard-accounts";
@@ -18,6 +19,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ accountId?: string }>;
 }) {
+  return withServerAuth(async () => {
   const { accountId: accountIdParam } = await searchParams;
 
   const accounts = await db.account.findMany({
@@ -80,4 +82,5 @@ export default async function DashboardPage({
       }))}
     />
   );
+  });
 }

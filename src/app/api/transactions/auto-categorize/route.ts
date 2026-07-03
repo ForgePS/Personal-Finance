@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { autoCategorizeUncategorized } from "@/lib/auto-categorize-service";
+import { withAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   let body: { ids?: string[]; limit?: number } = {};
   try {
     body = await request.json();
@@ -17,4 +18,4 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json(result);
-}
+});

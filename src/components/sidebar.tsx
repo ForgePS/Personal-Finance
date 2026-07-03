@@ -19,8 +19,10 @@ import {
   Sparkles,
   BarChart3,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { signOutUser } from "@/lib/auth-client";
+import { LogOut } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -40,6 +42,29 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tenantName, setTenantName] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setTenantName(data.tenantName ?? null);
+          setUserEmail(data.email ?? null);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+    } catch {
+      await fetch("/api/auth/logout", { method: "POST" });
+    }
+    window.location.href = "/login";
+  };
 
   const NavContent = () => (
     <>
@@ -79,7 +104,25 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-4 space-y-3">
+        {(tenantName || userEmail) && (
+          <div className="rounded-xl bg-white/10 p-3">
+            {tenantName && (
+              <p className="text-xs font-semibold text-white truncate">{tenantName}</p>
+            )}
+            {userEmail && (
+              <p className="mt-0.5 text-xs text-indigo-200/80 truncate">{userEmail}</p>
+            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-indigo-100 hover:bg-white/15"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </button>
+          </div>
+        )}
         <div className="rounded-xl bg-white/10 p-3">
           <p className="text-xs font-medium text-indigo-200">Pro Tip</p>
           <p className="mt-1 text-xs text-indigo-100/80">

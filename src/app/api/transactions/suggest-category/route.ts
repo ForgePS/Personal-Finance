@@ -3,10 +3,11 @@ import {
   enrichSuggestionWithName,
   suggestCategoryFromHistory,
 } from "@/lib/auto-categorize-service";
+import { withAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   const params = request.nextUrl.searchParams;
   const description = params.get("description")?.trim() ?? "";
   const merchant = params.get("merchant");
@@ -31,4 +32,4 @@ export async function GET(request: NextRequest) {
 
   const enriched = await enrichSuggestionWithName(suggestion);
   return NextResponse.json(enriched);
-}
+});

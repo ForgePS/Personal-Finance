@@ -6,6 +6,7 @@ import {
 } from "@/lib/plaid-sync";
 import { isPlaidConfigured } from "@/lib/plaid";
 import { parsePlaidError } from "@/lib/plaid-errors";
+import { withAuth } from "@/lib/api-auth";
 
 function buildSyncMessage(result: Awaited<ReturnType<typeof syncPlaidItem>>) {
   const parts: string[] = [];
@@ -35,7 +36,7 @@ function buildSyncMessage(result: Awaited<ReturnType<typeof syncPlaidItem>>) {
   return parts.join(". ");
 }
 
-export async function GET() {
+export const GET = withAuth(async () => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json({ configured: false, items: [] });
   }
@@ -45,9 +46,9 @@ export async function GET() {
     configured: true,
     items: items.map(sanitizePlaidItemForClient),
   });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   if (!(await isPlaidConfigured())) {
     return NextResponse.json({ error: "Plaid is not configured" }, { status: 503 });
   }
@@ -70,4 +71,4 @@ export async function POST(request: NextRequest) {
     const message = parsePlaidError(error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

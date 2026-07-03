@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withServerAuth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { TransactionsPageClient } from "@/components/transactions-page-client";
 import { getTransactionDisplayAmountForAccount } from "@/lib/debt-payment-service";
@@ -15,6 +16,7 @@ export default async function TransactionsPage({
 }: {
   searchParams: Promise<{ accountId?: string }>;
 }) {
+  return withServerAuth(async () => {
   const { accountId } = await searchParams;
 
   const [transactions, accountFilter, accounts] = await Promise.all([
@@ -73,4 +75,5 @@ export default async function TransactionsPage({
       accounts={accounts}
     />
   );
+  });
 }

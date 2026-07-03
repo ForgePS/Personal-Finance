@@ -8,6 +8,7 @@ import {
   validateDebtPayment,
 } from "@/lib/debt-payment-service";
 import { invalidateCategoryIndexCache } from "@/lib/auto-categorize-service";
+import { withAuth } from "@/lib/api-auth";
 
 interface BulkUpdates {
   categoryId?: string | null;
@@ -109,7 +110,7 @@ async function applyBulkUpdate(
   return { status: "updated" as const };
 }
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const ids: string[] = Array.isArray(body.ids) ? body.ids : [];
   const updates: BulkUpdates = body.updates ?? {};
@@ -155,9 +156,9 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json(results);
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const ids: string[] = Array.isArray(body.ids) ? body.ids : [];
 
@@ -195,4 +196,4 @@ export async function DELETE(request: NextRequest) {
   }
 
   return NextResponse.json({ deleted, skipped });
-}
+});

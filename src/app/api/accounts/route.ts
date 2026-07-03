@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { importSyncedAccount } from "@/lib/plaid-sync";
+import { withAuth } from "@/lib/api-auth";
+import { withTenantData } from "@/lib/tenant-where";
 
-export async function GET() {
+export const GET = withAuth(async () => {
   const accounts = await db.account.findMany({
     where: { isArchived: false },
     orderBy: { name: "asc" },
@@ -11,9 +13,9 @@ export async function GET() {
     },
   });
   return NextResponse.json(accounts);
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
 
   if (body.plaidAccountId && body.plaidItemId) {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   const account = await db.account.create({
-    data: {
+    data: withTenantData({
       name: String(body.name || "").trim() || "Unnamed Account",
       type: body.type,
       institution: body.institution || null,
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
       isArchived: false,
       isLinked: false,
       ...(body.plaidItemId && { plaidItemId: String(body.plaidItemId) }),
-    },
+    }),
   });
   return NextResponse.json(account, { status: 201 });
-}
+});

@@ -10,8 +10,9 @@ import {
   setEnvelopeBudget,
 } from "@/lib/envelope-service";
 import { parseEnvelopeMonthInput, getMonthKey } from "@/lib/utils";
+import { withAuth } from "@/lib/api-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest, auth) => {
   const body = await request.json();
   const month = parseEnvelopeMonthInput(body.month ?? getMonthKey(new Date()));
 
@@ -111,4 +112,4 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Operation failed";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-}
+});
