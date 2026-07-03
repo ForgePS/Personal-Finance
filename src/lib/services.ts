@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isBankLinkedAccount } from "@/lib/account-balance";
 import { isLiability } from "@/lib/constants";
 import { getMonthEnd, getMonthStart } from "@/lib/utils";
 import { startOfMonth, subMonths } from "date-fns";
@@ -182,6 +183,11 @@ export async function updateAccountBalanceFromTransaction(
 ) {
   const account = await db.account.findUnique({ where: { id: accountId } });
   if (!account) return;
+
+  // Bank-linked accounts: balance comes from Plaid sync only, not local math.
+  if (isBankLinkedAccount(account)) {
+    return;
+  }
 
   let adjustment = amount;
   if (previousAmount !== undefined) {

@@ -6,12 +6,12 @@ import {
   mapPlaidAccountType,
 } from "@/lib/plaid";
 import { ACCOUNT_COLORS } from "@/lib/constants";
-import { isLiability } from "@/lib/constants";
 import {
   isPlaidErrorCode,
   normalizePlaidCursor,
   parsePlaidError,
 } from "@/lib/plaid-errors";
+import { resolvePlaidBalance, toStoredAccountBalance } from "@/lib/account-balance";
 
 export interface SyncPlaidItemResult {
   accountsSynced: number;
@@ -44,12 +44,10 @@ export async function syncPlaidItem(
 
   for (const plaidAccount of accountsResponse.data.accounts) {
     const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
-    const balance =
-      plaidAccount.balances.current ??
-      plaidAccount.balances.available ??
-      0;
-
-    const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
+    const accountBalance = toStoredAccountBalance(
+      resolvePlaidBalance(plaidAccount.balances, type),
+      type
+    );
 
     const existing = accountMap.get(plaidAccount.account_id);
     if (existing) {
@@ -275,9 +273,10 @@ export async function getAvailableSyncedAccounts(): Promise<AvailableSyncedAccou
       if (existing && existing.isArchived !== true) continue;
 
       const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
-      const balance =
-        plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
-      const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
+      const accountBalance = toStoredAccountBalance(
+        resolvePlaidBalance(plaidAccount.balances, type),
+        type
+      );
 
       available.push({
         id: existing?.id ?? plaidAccount.account_id,
@@ -312,9 +311,10 @@ export async function importSyncedAccount(
   if (!plaidAccount) throw new Error("Synced account not found");
 
   const type = mapPlaidAccountType(plaidAccount.type, plaidAccount.subtype);
-  const balance =
-    plaidAccount.balances.current ?? plaidAccount.balances.available ?? 0;
-  const accountBalance = isLiability(type) ? -Math.abs(balance) : balance;
+  const accountBalance = toStoredAccountBalance(
+    resolvePlaidBalance(plaidAccount.balances, type),
+    type
+  );
 
   const displayName = customName?.trim() || plaidAccount.name;
 

@@ -107,6 +107,20 @@ export default async function AccountDetailPage({
               {liability ? "-" : ""}
               {formatCurrency(Math.abs(account.balance))}
             </p>
+            {account.isLinked && account.plaidAccountId && (
+              <p className="mt-2 text-xs text-slate-500">
+                Balance from your bank
+                {account.lastSyncedAt
+                  ? ` · synced ${new Date(account.lastSyncedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}`
+                  : ""}
+                . Tap Sync in Settings → Bank Linking to refresh.
+              </p>
+            )}
           </div>
         </div>
         <AccountDetailActions
