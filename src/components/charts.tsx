@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Legend,
   Pie,
   PieChart,
@@ -233,6 +234,174 @@ export function NetWorthBarChart({
           ))}
         </Bar>
       </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export interface ForecastTimelinePoint {
+  month: string;
+  income: number;
+  expenses: number;
+  scheduledExpenses: number;
+  variableExpenses: number;
+  isForecast: boolean;
+}
+
+export function AnalyticsForecastChart({ data }: { data: ForecastTimelinePoint[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+        <YAxis
+          tick={{ fontSize: 12, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+        />
+        <Tooltip
+          formatter={(value, name) => [
+            `$${Number(value).toLocaleString()}`,
+            name === "scheduledExpenses"
+              ? "Scheduled"
+              : name === "variableExpenses"
+                ? "Variable (est.)"
+                : String(name),
+          ]}
+          contentStyle={{
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+          }}
+        />
+        <Legend />
+        <Bar
+          dataKey="scheduledExpenses"
+          stackId="expenses"
+          fill="#f43f5e"
+          name="Scheduled expenses"
+          radius={[0, 0, 0, 0]}
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`sched-${index}`}
+              fill={entry.isForecast ? "#fb7185" : "#f43f5e"}
+              fillOpacity={entry.isForecast ? 0.65 : 1}
+            />
+          ))}
+        </Bar>
+        <Bar
+          dataKey="variableExpenses"
+          stackId="expenses"
+          fill="#fda4af"
+          name="Variable (est.)"
+          radius={[4, 4, 0, 0]}
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`var-${index}`}
+              fill={entry.isForecast ? "#fecdd3" : "#fda4af"}
+              fillOpacity={entry.isForecast ? 0.65 : 1}
+            />
+          ))}
+        </Bar>
+        <Area
+          type="monotone"
+          dataKey="income"
+          stroke="#22c55e"
+          fill="#22c55e"
+          fillOpacity={0.15}
+          strokeWidth={2}
+          name="Income"
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function CategoryComparisonChart({
+  data,
+}: {
+  data: { name: string; current: number; average: number; predicted: number; color: string }[];
+}) {
+  const top = data.slice(0, 8);
+  if (top.length === 0) {
+    return (
+      <div className="flex h-[280px] items-center justify-center text-sm text-slate-500">
+        No category spending data yet
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(280, top.length * 36)}>
+      <BarChart data={top} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+        <XAxis
+          type="number"
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+        />
+        <YAxis
+          type="category"
+          dataKey="name"
+          width={100}
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <Tooltip
+          formatter={(value) => `$${Number(value).toLocaleString()}`}
+          contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}
+        />
+        <Legend />
+        <Bar dataKey="average" fill="#cbd5e1" name="12-mo avg" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="current" name="This month">
+          {top.map((entry) => (
+            <Cell key={`cur-${entry.name}`} fill={entry.color} />
+          ))}
+        </Bar>
+        <Bar dataKey="predicted" fill="#818cf8" name="Next month (est.)" radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function SavingsRateChart({
+  data,
+}: {
+  data: { month: string; rate: number; isForecast: boolean }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+        <YAxis
+          tick={{ fontSize: 11, fill: "#64748b" }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={(v) => `${v}%`}
+        />
+        <Tooltip
+          formatter={(value) => [`${Number(value).toFixed(1)}%`, "Savings rate"]}
+          contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0" }}
+        />
+        <Area
+          type="monotone"
+          dataKey="rate"
+          stroke="#6366f1"
+          fill="url(#savingsGrad)"
+          strokeWidth={2}
+        />
+      </AreaChart>
     </ResponsiveContainer>
   );
 }

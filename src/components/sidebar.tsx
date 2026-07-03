@@ -17,6 +17,7 @@ import {
   Mail,
   Wallet,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/planning", label: "Planning", icon: CalendarDays },
   { href: "/paycheck-planner", label: "Paycheck Planner", icon: Wallet },
   { href: "/advisor", label: "Advisor", icon: Sparkles },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/budgets", label: "Budgets", icon: PieChart },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/cash-flow", label: "Cash Flow", icon: TrendingUp },
