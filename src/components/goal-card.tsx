@@ -29,8 +29,24 @@ export function GoalCard({
 
   return (
     <div
+      role={onEdit ? "button" : undefined}
+      tabIndex={onEdit ? 0 : undefined}
       onClick={onEdit}
-      className="cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:border-indigo-200 hover:shadow-md"
+      onKeyDown={
+        onEdit
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onEdit();
+              }
+            }
+          : undefined
+      }
+      className={`rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all ${
+        onEdit
+          ? "cursor-pointer hover:border-indigo-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+          : ""
+      }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

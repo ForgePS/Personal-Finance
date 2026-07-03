@@ -233,7 +233,9 @@ export function DashboardPageClient({
           <CardHeader
             title="Goals"
             subtitle={
-              isAccountView ? `Goals linked to ${selectedAccountName}` : "Track your savings targets"
+              isAccountView
+                ? `Goals for ${selectedAccountName} and unlinked targets`
+                : "Track your savings targets"
             }
             action={
               <Link
@@ -258,6 +260,7 @@ export function DashboardPageClient({
                   icon={goal.icon}
                   color={goal.color}
                   accountName={goal.account?.name}
+                  onEdit={() => router.push(`/goals?edit=${goal.id}`)}
                 />
               ))
             )}

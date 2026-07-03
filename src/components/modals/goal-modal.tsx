@@ -21,6 +21,7 @@ export interface GoalRecord {
   color: string;
   icon: string;
   accountId?: string | null;
+  account?: { name: string } | null;
 }
 
 const GOAL_COLORS = ["#10b981", "#06b6d4", "#3b82f6", "#8b5cf6", "#f97316", "#ec4899"];

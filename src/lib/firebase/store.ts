@@ -151,6 +151,9 @@ function matchesWhere(item: Record<string, unknown>, where: WhereInput): boolean
       }
       continue;
     }
+    if (value === null && (item[key] === null || item[key] === undefined)) {
+      continue;
+    }
     if (item[key] !== value) return false;
   }
   return true;

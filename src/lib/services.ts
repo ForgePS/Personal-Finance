@@ -106,7 +106,9 @@ export async function getDashboardData(month?: Date, accountId?: string | null) 
   });
 
   const goals = await db.goal.findMany({
-    where: accountId ? { accountId } : undefined,
+    where: accountId
+      ? { OR: [{ accountId }, { accountId: null }] }
+      : undefined,
     orderBy: { targetDate: "asc" },
     include: { account: true },
   });
