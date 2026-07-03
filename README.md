@@ -12,6 +12,7 @@ A fully functional personal finance app inspired by Monarch Money. Track account
 - **Transactions** — Add, search, and filter income and expenses across all accounts
 - **Budgets** — Set monthly category budgets with visual progress bars and over-budget alerts
 - **Goals** — Create savings goals with progress tracking and target dates
+- **Financial Advisor** — Health score, personalized insights, and prioritized action items across your full financial picture
 - **Cash Flow** — 6-month income/expense trends with savings rate analysis
 
 ## Tech Stack
@@ -109,6 +110,7 @@ src/
 │   ├── transactions/     # Transaction list page
 │   ├── budgets/          # Budget tracking page
 │   ├── goals/            # Savings goals page
+│   ├── advisor/          # Financial advisor insights page
 │   └── cash-flow/        # Cash flow analysis page
 ├── components/           # React components
 │   ├── ui/               # Reusable UI primitives

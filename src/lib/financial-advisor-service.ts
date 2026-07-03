@@ -21,6 +21,20 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
+/** Use trailing months with activity so early-month partial data does not skew metrics. */
+function averageFromHistory(
+  history: { income: number; expenses: number }[],
+  field: "income" | "expenses"
+): number {
+  const active = history.filter((m) => m.income > 0 || m.expenses > 0);
+  if (active.length === 0) return 0;
+  return active.reduce((sum, m) => sum + m[field], 0) / active.length;
+}
+
+function isEarlyInMonth(date: Date): boolean {
+  return date.getDate() <= 10;
+}
+
 function scoreSavingsRate(rate: number): number {
   if (rate >= 0.2) return 100;
   if (rate >= 0.15) return 90;
@@ -127,11 +141,27 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
     .filter((a) => a.type === "SAVINGS")
     .reduce((s, a) => s + a.balance, 0);
 
-  const monthlyExpenses = dashboard.expenses || 1;
-  const monthlyIncome = dashboard.income;
-  const savingsRate = monthlyIncome > 0 ? dashboard.savings / monthlyIncome : 0;
+  const liquidBalance = checkingBalance + savingsBalance;
+  const avgMonthlyIncome = averageFromHistory(dashboard.cashFlowHistory, "income");
+  const avgMonthlyExpenses = averageFromHistory(dashboard.cashFlowHistory, "expenses");
+  const earlyMonth = isEarlyInMonth(now);
+  const incomeNotYetPosted =
+    earlyMonth && dashboard.income === 0 && avgMonthlyIncome > 0;
+
+  const monthlyIncome = incomeNotYetPosted ? avgMonthlyIncome : dashboard.income;
+  const monthlyExpenses =
+    earlyMonth && dashboard.expenses < avgMonthlyExpenses * 0.25 && avgMonthlyExpenses > 0
+      ? avgMonthlyExpenses
+      : dashboard.expenses;
+  const monthlySavings = dashboard.income - dashboard.expenses;
+  const savingsRate =
+    monthlyIncome > 0
+      ? incomeNotYetPosted
+        ? round2(avgMonthlyIncome > 0 ? (avgMonthlyIncome - avgMonthlyExpenses) / avgMonthlyIncome : 0)
+        : round2(monthlySavings / monthlyIncome)
+      : 0;
   const monthsOfExpenses =
-    monthlyExpenses > 0 ? round2(checkingBalance / monthlyExpenses) : 0;
+    monthlyExpenses > 0 ? round2(liquidBalance / monthlyExpenses) : 0;
 
   const debtToAssetRatio =
     dashboard.assets > 0 ? round2(dashboard.liabilities / dashboard.assets) : 0;
@@ -140,10 +170,12 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
     netWorth: dashboard.netWorth,
     assets: dashboard.assets,
     liabilities: dashboard.liabilities,
-    monthlyIncome,
+    monthlyIncome: dashboard.income,
     monthlyExpenses: dashboard.expenses,
-    savingsRate: round2(savingsRate),
-    checkingBalance,
+    savingsRate: round2(
+      dashboard.income > 0 ? dashboard.savings / dashboard.income : savingsRate
+    ),
+    checkingBalance: liquidBalance,
     monthsOfExpenses,
     debtToAssetRatio,
   };
@@ -160,7 +192,11 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
       envelopes.overBudgetCount,
       envelopes.envelopes.length
     ),
-    cashFlowTrend: scoreCashFlowTrend(dashboard.cashFlowHistory),
+    cashFlowTrend: scoreCashFlowTrend(
+      earlyMonth && dashboard.cashFlowHistory.length > 1
+        ? dashboard.cashFlowHistory.slice(0, -1)
+        : dashboard.cashFlowHistory
+    ),
     goalProgress: scoreGoals(dashboard.goals),
     planningOutlook: scorePlanning(
       planner.summary.shortfallCount,
@@ -185,7 +221,18 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
   let actionPriority = 1;
 
   // --- Cash flow & savings ---
-  if (savingsRate < 0) {
+  if (incomeNotYetPosted) {
+    insights.push(
+      insight(
+        "income-not-posted",
+        "opportunity",
+        "cash_flow",
+        "Income not recorded yet this month",
+        "Payroll and other income may not have posted yet. Savings-rate and cash-flow insights use your recent monthly averages until more transactions arrive.",
+        { href: "/transactions", actionLabel: "View transactions" }
+      )
+    );
+  } else if (savingsRate < 0) {
     insights.push(
       insight(
         "negative-savings",
@@ -228,12 +275,17 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
     );
   }
 
-  const lastThreeMonths = dashboard.cashFlowHistory.slice(-3);
+  const completedMonths = dashboard.cashFlowHistory.slice(0, -1);
+  const lastTwoCompleted = completedMonths.slice(-2);
   const decliningTrend =
-    lastThreeMonths.length >= 2 &&
-    lastThreeMonths[lastThreeMonths.length - 1].net <
-      lastThreeMonths[lastThreeMonths.length - 2].net;
-  if (decliningTrend && lastThreeMonths[lastThreeMonths.length - 1].net < 0) {
+    lastTwoCompleted.length >= 2 &&
+    lastTwoCompleted[lastTwoCompleted.length - 1].net <
+      lastTwoCompleted[lastTwoCompleted.length - 2].net;
+  if (
+    decliningTrend &&
+    lastTwoCompleted[lastTwoCompleted.length - 1].net < 0 &&
+    !incomeNotYetPosted
+  ) {
     insights.push(
       insight(
         "declining-cashflow",
@@ -254,7 +306,7 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
         "critical",
         "liquidity",
         "Less than one month of expenses in checking",
-        `You have about ${monthsOfExpenses.toFixed(1)} months of expenses in liquid accounts (${fmt(checkingBalance)}). Aim for at least 3 months as an emergency buffer.`,
+        `You have about ${monthsOfExpenses.toFixed(1)} months of expenses in liquid accounts (${fmt(liquidBalance)}). Aim for at least 3 months as an emergency buffer.`,
         { metric: `${monthsOfExpenses.toFixed(1)} mo`, href: "/accounts", actionLabel: "View accounts" }
       )
     );
@@ -273,7 +325,7 @@ export async function getFinancialAdvisorData(): Promise<FinancialAdvisorData> {
         "opportunity",
         "liquidity",
         "Emergency fund could be stronger",
-        `You have ${monthsOfExpenses.toFixed(1)} months of expenses in checking/cash. Building toward 3–6 months provides a solid safety net.`,
+        `You have ${monthsOfExpenses.toFixed(1)} months of expenses in checking and savings. Building toward 3–6 months provides a solid safety net.`,
         { metric: `${monthsOfExpenses.toFixed(1)} mo` }
       )
     );
