@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Money Command — Personal Finance",
   description: "Track accounts, transactions, budgets, and goals in one place.",
   icons: {
-    icon: "/logo-icon.png",
-    apple: "/favicon-192.png",
+    icon: "/icon.png",
+    apple: "/icon.png",
   },
 };
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import { Command } from "lucide-react";
+import Image, { type StaticImageData } from "next/image";
+import logoFull from "../../public/logo.png";
+import logoIcon from "../../public/logo-icon.png";
 import { cn } from "@/lib/utils";
 
 const SIZES = {
@@ -14,6 +14,11 @@ const SIZES = {
 
 type LogoSize = keyof typeof SIZES;
 type LogoVariant = "icon" | "full";
+
+const LOGO_SRC: Record<LogoVariant, StaticImageData> = {
+  full: logoFull,
+  icon: logoIcon,
+};
 
 interface LogoProps {
   size?: LogoSize;
@@ -28,36 +33,19 @@ export function Logo({
   className,
   priority = false,
 }: LogoProps) {
-  const [failed, setFailed] = useState(false);
-  const src = variant === "full" ? "/logo.png" : "/logo-icon.png";
+  const src = LOGO_SRC[variant];
   const px = SIZES[size];
-  const aspect = variant === "full" ? 1 : 0.62;
-  const height = variant === "full" ? px : Math.round(px * aspect);
-
-  if (failed) {
-    return (
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30",
-          className
-        )}
-        style={{ width: px, height: px }}
-      >
-        <Command style={{ width: px * 0.5, height: px * 0.5 }} />
-      </div>
-    );
-  }
 
   return (
     <Image
       src={src}
       alt="Money Command"
       width={px}
-      height={height}
+      height={Math.round(px * (src.height / src.width))}
       priority={priority}
-      onError={() => setFailed(true)}
-      className={cn("object-contain", className)}
-      style={{ width: px, height }}
+      unoptimized
+      className={cn("h-auto w-auto object-contain", className)}
+      style={{ width: px, maxWidth: px }}
     />
   );
 }
