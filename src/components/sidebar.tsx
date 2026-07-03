@@ -13,7 +13,6 @@ import {
   Settings,
   Menu,
   X,
-  Command,
   Mail,
   Wallet,
   Sparkles,
@@ -23,6 +22,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { signOutUser } from "@/lib/auth-client";
 import { LogOut } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -68,14 +68,14 @@ export function Sidebar() {
 
   const NavContent = () => (
     <>
-      <div className="flex items-center gap-3 px-4 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
-          <Command className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-white">Money Command</h1>
-          <p className="text-xs text-indigo-300">Personal Finance</p>
-        </div>
+      <div className="px-4 py-6">
+        <LogoMark
+          size="md"
+          title="Money Command"
+          subtitle="Personal Finance"
+          titleClassName="text-lg text-white"
+          subtitleClassName="text-indigo-300"
+        />
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
@@ -144,8 +144,13 @@ export function Sidebar() {
           <Menu className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">Personal Finance</p>
-          <p className="truncate text-xs text-slate-500">Money Command</p>
+          <LogoMark
+            size="sm"
+            title="Money Command"
+            subtitle="Personal Finance"
+            titleClassName="text-sm text-slate-900"
+            subtitleClassName="text-slate-500"
+          />
         </div>
       </header>
 

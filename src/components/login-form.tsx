@@ -9,7 +9,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
 } from "@/lib/auth-client";
-import { Command } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 
 export function LoginForm() {
   const router = useRouter();
@@ -79,16 +79,17 @@ export function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-8 shadow-2xl">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white">
-            <Command className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Money Command</h1>
-            <p className="text-sm text-slate-400">
-              {inviteToken ? "Sign in to join a shared household" : "Sign in to your workspace"}
-            </p>
-          </div>
+        <div className="mb-8">
+          <LogoMark
+            size="lg"
+            priority
+            title="Money Command"
+            subtitle={
+              inviteToken ? "Sign in to join a shared household" : "Sign in to your workspace"
+            }
+            titleClassName="text-xl text-white"
+            subtitleClassName="text-slate-400"
+          />
         </div>
 
         {inviteToken && (
