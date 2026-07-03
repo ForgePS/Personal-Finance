@@ -271,6 +271,33 @@ export async function deleteMemberById(memberId: string) {
   return rawDb.tenantMember.delete({ where: { id: memberId } });
 }
 
+async function firestoreUpdateMemberEmail(userId: string, email: string) {
+  const snap = await getDb()
+    .collection("tenantMembers")
+    .where("userId", "==", userId)
+    .limit(1)
+    .get();
+  if (snap.empty) return;
+  const doc = snap.docs[0];
+  const now = new Date().toISOString();
+  await doc.ref.set(
+    serializeDates({ email: email.trim().toLowerCase(), updatedAt: now }),
+    { merge: true }
+  );
+}
+
+export async function syncMemberEmail(userId: string, email: string) {
+  if (isFirebaseProduction()) {
+    return firestoreUpdateMemberEmail(userId, email);
+  }
+  const member = await rawDb.tenantMember.findUnique({ where: { userId } });
+  if (!member) return;
+  await rawDb.tenantMember.update({
+    where: { id: member.id },
+    data: { email: email.trim().toLowerCase() },
+  });
+}
+
 export async function tenantHasFinanceData(tenantId: string) {
   if (isFirebaseProduction()) {
     return (await firestoreCountAccounts(tenantId)) > 0;

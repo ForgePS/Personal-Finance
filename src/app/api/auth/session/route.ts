@@ -5,6 +5,7 @@ import {
   verifyIdToken,
   isAuthBypassEnabled,
 } from "@/lib/auth-server";
+import { syncMemberEmail } from "@/lib/tenant-repository";
 import { SESSION_COOKIE_NAME } from "@/lib/auth-constants";
 
 export async function POST(request: NextRequest) {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   const sessionCookie = await createSessionCookie(idToken);
   const { tenantId, tenantName } = await resolveOrCreateTenant(session.uid, session.email);
+  await syncMemberEmail(session.uid, session.email);
 
   const response = NextResponse.json({ ok: true, tenantId, tenantName });
   response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {

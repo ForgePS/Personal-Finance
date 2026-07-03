@@ -21,9 +21,9 @@ export default async function SettingsPage({
   const params = await searchParams;
   const data = await getSettingsData();
 
-  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals", "household", "bank-linking"];
+  const validTabs = ["categories", "known-expenses", "pay-schedules", "accounts", "goals", "household", "account", "bank-linking"];
   const initialTab = validTabs.includes(params.tab ?? "")
-    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals" | "household" | "bank-linking")
+    ? (params.tab as "categories" | "known-expenses" | "pay-schedules" | "accounts" | "goals" | "household" | "account" | "bank-linking")
     : "categories";
 
   return (

@@ -7,6 +7,10 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  updateEmail,
   type User,
 } from "firebase/auth";
 
@@ -52,6 +56,10 @@ export function formatAuthError(error: unknown): string {
       return "Email/password sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method.";
     case "auth/too-many-requests":
       return "Too many attempts. Wait a few minutes and try again.";
+    case "auth/requires-recent-login":
+      return "For security, enter your current password to confirm this change.";
+    case "auth/credential-too-old":
+      return "Please sign out and sign in again, then retry.";
     default:
       return error instanceof Error ? error.message : "Authentication failed";
   }
@@ -65,6 +73,34 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signUpWithEmail(email: string, password: string) {
   const auth = getFirebaseAuth();
   return createUserWithEmailAndPassword(auth, email, password);
+}
+
+export function getCurrentFirebaseUser(): User | null {
+  return getFirebaseAuth().currentUser;
+}
+
+async function reauthenticateCurrentUser(password: string) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user?.email) {
+    throw new Error("You must be signed in with email and password to do this.");
+  }
+  const credential = EmailAuthProvider.credential(user.email, password);
+  return reauthenticateWithCredential(user, credential);
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+  await reauthenticateCurrentUser(currentPassword);
+  await updatePassword(user, newPassword);
+}
+
+export async function changeEmail(currentPassword: string, newEmail: string) {
+  const user = getFirebaseAuth().currentUser;
+  if (!user) throw new Error("Not signed in");
+  await reauthenticateCurrentUser(currentPassword);
+  await updateEmail(user, newEmail.trim());
+  await establishServerSession(user);
 }
 
 export async function signOutUser() {
