@@ -57,6 +57,7 @@ export function formatAuthError(error: unknown): string {
   }
 }
 
+export async function signInWithEmail(email: string, password: string) {
   const auth = getFirebaseAuth();
   return signInWithEmailAndPassword(auth, email, password);
 }
