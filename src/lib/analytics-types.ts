@@ -96,6 +96,35 @@ export interface AnalyticsSummary {
   projectedNextMonthNet: number;
 }
 
+export interface MonthlyCategorySpending {
+  categoryId: string;
+  name: string;
+  color: string;
+  icon: string;
+  amount: number;
+  percentOfTotal: number;
+}
+
+export interface MonthlyEnvelopeSpending {
+  categoryId: string;
+  name: string;
+  color: string;
+  icon: string;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+}
+
+export interface HistoricalMonthSnapshot {
+  monthKey: string;
+  monthLabel: string;
+  totalExpenses: number;
+  categories: MonthlyCategorySpending[];
+  envelopes: MonthlyEnvelopeSpending[];
+  hasEnvelopes: boolean;
+}
+
 export interface AnalyticsData {
   generatedAt: string;
   accountId: string | null;
@@ -106,4 +135,5 @@ export interface AnalyticsData {
   upcomingExpenses: UpcomingExpense[];
   forecastMonths: ForecastMonth[];
   insights: AnalyticsInsight[];
+  historicalMonths: HistoricalMonthSnapshot[];
 }

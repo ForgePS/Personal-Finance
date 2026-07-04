@@ -14,7 +14,10 @@ import {
   type AnalyticsSummary,
   type CategoryAnalytic,
   type ForecastMonth,
+  type HistoricalMonthSnapshot,
   type MerchantSpending,
+  type MonthlyCategorySpending,
+  type MonthlyEnvelopeSpending,
   type UpcomingExpense,
 } from "@/lib/analytics-types";
 import { formatDateKey, getMonthEnd, getMonthKey, getMonthStart } from "@/lib/utils";
@@ -288,6 +291,154 @@ function formatCurrencyAbs(amount: number) {
   }).format(Math.abs(amount));
 }
 
+function buildMonthlyCategorySpending(
+  txs: Array<{
+    categoryId: string | null;
+    accountId: string;
+    transferAccountId?: string | null;
+    debtAccountId?: string | null;
+    amount: number;
+    isTransfer?: boolean;
+  }>,
+  expenseCategories: Array<{ id: string; name: string; color: string; icon: string }>,
+  accountId?: string | null
+): MonthlyCategorySpending[] {
+  const spentByCategory = new Map<string, number>();
+  let uncategorized = 0;
+
+  for (const tx of txs) {
+    const amt = txAmount(tx, accountId);
+    if (amt >= 0) continue;
+    const abs = Math.abs(amt);
+    if (tx.categoryId) {
+      spentByCategory.set(tx.categoryId, (spentByCategory.get(tx.categoryId) ?? 0) + abs);
+    } else {
+      uncategorized += abs;
+    }
+  }
+
+  const total =
+    [...spentByCategory.values()].reduce((s, v) => s + v, 0) + uncategorized || 1;
+
+  const rows: MonthlyCategorySpending[] = [];
+  for (const cat of expenseCategories) {
+    const amount = spentByCategory.get(cat.id) ?? 0;
+    if (amount <= 0) continue;
+    rows.push({
+      categoryId: cat.id,
+      name: cat.name,
+      color: cat.color,
+      icon: cat.icon,
+      amount: round2(amount),
+      percentOfTotal: round2((amount / total) * 100),
+    });
+  }
+
+  if (uncategorized > 0) {
+    rows.push({
+      categoryId: "uncategorized",
+      name: "Uncategorized",
+      color: "#94a3b8",
+      icon: "HelpCircle",
+      amount: round2(uncategorized),
+      percentOfTotal: round2((uncategorized / total) * 100),
+    });
+  }
+
+  return rows.sort((a, b) => b.amount - a.amount);
+}
+
+function buildMonthlyEnvelopeSpending(
+  envelopes: Array<{
+    categoryId: string;
+    allocated: number;
+    isActive?: boolean;
+    category: { id: string; name: string; color: string; icon: string } | null;
+  }>,
+  spentByCategory: Map<string, number>
+): MonthlyEnvelopeSpending[] {
+  return envelopes
+    .filter((e) => e.isActive !== false && e.category)
+    .map((envelope) => {
+      const category = envelope.category!;
+      const spent = round2(spentByCategory.get(envelope.categoryId) ?? 0);
+      const allocated = round2(envelope.allocated);
+      return {
+        categoryId: envelope.categoryId,
+        name: category.name,
+        color: category.color,
+        icon: category.icon,
+        allocated,
+        spent,
+        remaining: round2(allocated - spent),
+        percentUsed: allocated > 0 ? round2((spent / allocated) * 100) : 0,
+      };
+    })
+    .filter((e) => e.allocated > 0 || e.spent > 0)
+    .sort((a, b) => b.spent - a.spent);
+}
+
+function buildHistoricalMonths(
+  historyMonths: Date[],
+  txByMonth: Map<
+    string,
+    Array<{
+      categoryId: string | null;
+      accountId: string;
+      transferAccountId?: string | null;
+      debtAccountId?: string | null;
+      amount: number;
+      isTransfer?: boolean;
+    }>
+  >,
+  expenseCategories: Array<{ id: string; name: string; color: string; icon: string }>,
+  envelopeRecords: Array<{
+    month: Date;
+    categoryId: string;
+    allocated: number;
+    isActive?: boolean;
+    category: { id: string; name: string; color: string; icon: string } | null;
+  }>,
+  accountId?: string | null
+): HistoricalMonthSnapshot[] {
+  const envelopesByMonth = new Map<string, typeof envelopeRecords>();
+  for (const envelope of envelopeRecords) {
+    const key = getMonthKey(envelope.month);
+    const list = envelopesByMonth.get(key) ?? [];
+    list.push(envelope);
+    envelopesByMonth.set(key, list);
+  }
+
+  return historyMonths.map((month) => {
+    const key = getMonthKey(month);
+    const txs = txByMonth.get(key) ?? [];
+    const categories = buildMonthlyCategorySpending(txs, expenseCategories, accountId);
+    const totalExpenses = round2(categories.reduce((s, c) => s + c.amount, 0));
+
+    const spentByCategory = new Map<string, number>();
+    for (const tx of txs) {
+      const amt = txAmount(tx, accountId);
+      if (amt >= 0 || !tx.categoryId) continue;
+      spentByCategory.set(
+        tx.categoryId,
+        (spentByCategory.get(tx.categoryId) ?? 0) + Math.abs(amt)
+      );
+    }
+
+    const monthEnvelopes = envelopesByMonth.get(key) ?? [];
+    const envelopes = buildMonthlyEnvelopeSpending(monthEnvelopes, spentByCategory);
+
+    return {
+      monthKey: key,
+      monthLabel: monthLabel(month),
+      totalExpenses,
+      categories,
+      envelopes,
+      hasEnvelopes: monthEnvelopes.some((e) => e.isActive !== false),
+    };
+  });
+}
+
 export async function getAnalyticsData(
   accountId?: string | null,
   referenceMonth?: Date
@@ -305,7 +456,7 @@ export async function getAnalyticsData(
   const rangeStart = historyMonths[0];
   const rangeEnd = getMonthEnd(now);
 
-  const [accounts, allTransactions, categories, { paySchedules, scheduledExpenses }] =
+  const [accounts, allTransactions, categories, { paySchedules, scheduledExpenses }, envelopeRecords] =
     await Promise.all([
       db.account.findMany({ where: { isArchived: false } }),
       db.transaction.findMany({
@@ -319,6 +470,10 @@ export async function getAnalyticsData(
       }),
       db.category.findMany(),
       loadSchedules(),
+      db.envelope.findMany({
+        where: { month: { in: historyMonths } },
+        include: { category: true },
+      }),
     ]);
 
   const assets = accounts
@@ -572,6 +727,15 @@ export async function getAnalyticsData(
 
   const insights = buildInsights(summary, forecastMonths, upcomingExpenses, categoryAnalytics);
 
+  const expenseCategories = categories.filter((c) => c.type === "EXPENSE");
+  const historicalMonths = buildHistoricalMonths(
+    historyMonths,
+    txByMonth,
+    expenseCategories,
+    envelopeRecords,
+    accountId
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     accountId: accountId ?? null,
@@ -582,5 +746,6 @@ export async function getAnalyticsData(
     upcomingExpenses,
     forecastMonths,
     insights,
+    historicalMonths,
   };
 }

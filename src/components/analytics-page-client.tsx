@@ -11,6 +11,7 @@ import {
   CategoryComparisonChart,
   CashFlowChart,
   SavingsRateChart,
+  SpendingPieChart,
   type ForecastTimelinePoint,
 } from "@/components/charts";
 import { formatCurrency, formatShortDate, cn } from "@/lib/utils";
@@ -30,10 +31,18 @@ import {
 const TABS = [
   { id: "overview", label: "Overview" },
   { id: "spending", label: "Spending" },
+  { id: "history", label: "History" },
   { id: "forecast", label: "Forecast" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+const HISTORY_VIEWS = [
+  { id: "category", label: "By category" },
+  { id: "envelope", label: "By envelope" },
+] as const;
+
+type HistoryViewId = (typeof HISTORY_VIEWS)[number]["id"];
 
 const insightIcon = {
   info: Info,
@@ -58,6 +67,8 @@ export function AnalyticsPageClient({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<TabId>("overview");
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
+  const [historyView, setHistoryView] = useState<HistoryViewId>("category");
 
   const accountOptions = useMemo(
     () => [
@@ -99,6 +110,32 @@ export function AnalyticsPageClient({
     color: c.color,
   }));
 
+  const selectedHistoricalMonth = useMemo(() => {
+    const months = data.historicalMonths;
+    if (months.length === 0) return null;
+    const fallbackKey = months[Math.max(0, months.length - 2)]?.monthKey ?? months[0].monthKey;
+    const key = selectedMonthKey ?? fallbackKey;
+    return months.find((m) => m.monthKey === key) ?? months[months.length - 1];
+  }, [data.historicalMonths, selectedMonthKey]);
+
+  const historicalMonthOptions = useMemo(
+    () =>
+      [...data.historicalMonths]
+        .reverse()
+        .map((m) => ({ value: m.monthKey, label: m.monthLabel })),
+    [data.historicalMonths]
+  );
+
+  const categoryPieData = useMemo(
+    () =>
+      (selectedHistoricalMonth?.categories ?? []).map((c) => ({
+        name: c.name,
+        amount: c.amount,
+        color: c.color,
+      })),
+    [selectedHistoricalMonth]
+  );
+
   const handleAccountChange = (value: string) => {
     if (value === "all") {
       router.push("/analytics");
@@ -119,7 +156,7 @@ export function AnalyticsPageClient({
           <div>
             <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Analytics</h1>
             <p className="text-sm text-slate-500">
-              12-month history · 3-month expense forecast
+              12-month history · past spending by category & envelope
             </p>
           </div>
         </div>
@@ -325,6 +362,183 @@ export function AnalyticsPageClient({
               </div>
             </Card>
           </div>
+        </>
+      )}
+
+      {tab === "history" && (
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <Select
+              label="Month"
+              value={selectedHistoricalMonth?.monthKey ?? ""}
+              onChange={(e) => setSelectedMonthKey(e.target.value)}
+              options={historicalMonthOptions}
+              className="w-full sm:w-56"
+            />
+            {selectedHistoricalMonth && (
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-sm font-medium text-slate-500">Total spent</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums text-rose-600">
+                  {formatCurrency(selectedHistoricalMonth.totalExpenses)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="-mx-3 overflow-x-auto px-3 scrollbar-hide sm:mx-0 sm:px-0">
+            <div className="flex min-w-max gap-2">
+              {HISTORY_VIEWS.map((view) => (
+                <button
+                  key={view.id}
+                  type="button"
+                  onClick={() => setHistoryView(view.id)}
+                  className={cn(
+                    "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors touch-manipulation",
+                    historyView === view.id
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {view.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {!selectedHistoricalMonth ? (
+            <Card>
+              <p className="py-12 text-center text-sm text-slate-500">
+                No historical spending data yet.
+              </p>
+            </Card>
+          ) : historyView === "category" ? (
+            <>
+              <Card>
+                <CardHeader
+                  title={`${selectedHistoricalMonth.monthLabel} spending`}
+                  subtitle="Actual expenses by category"
+                />
+                <SpendingPieChart
+                  data={categoryPieData.map((c) => ({ name: c.name, amount: c.amount }))}
+                />
+              </Card>
+
+              <Card>
+                <CardHeader title="Category breakdown" subtitle="All spending for the selected month" />
+                <div className="divide-y divide-slate-100">
+                  {selectedHistoricalMonth.categories.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-slate-500">
+                      No spending recorded this month.
+                    </p>
+                  ) : (
+                    selectedHistoricalMonth.categories.map((cat) => (
+                      <div key={cat.categoryId} className="flex items-center gap-3 py-3">
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: `${cat.color}20` }}
+                        >
+                          <DynamicIcon
+                            name={cat.icon}
+                            className="h-4 w-4"
+                            style={{ color: cat.color }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-slate-900">{cat.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {cat.percentOfTotal.toFixed(0)}% of spending
+                          </p>
+                        </div>
+                        <p className="font-semibold tabular-nums text-slate-900">
+                          {formatCurrency(cat.amount)}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader
+                title={`${selectedHistoricalMonth.monthLabel} envelopes`}
+                subtitle="Allocated vs actual spending per envelope"
+              />
+              {!selectedHistoricalMonth.hasEnvelopes ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  No envelopes were set up for this month. Switch to &ldquo;By category&rdquo; to
+                  see spending either way.
+                </p>
+              ) : selectedHistoricalMonth.envelopes.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  Envelopes exist but nothing was allocated or spent this month.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {selectedHistoricalMonth.envelopes.map((env) => (
+                    <div key={env.categoryId} className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: `${env.color}20` }}
+                        >
+                          <DynamicIcon
+                            name={env.icon}
+                            className="h-4 w-4"
+                            style={{ color: env.color }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-slate-900">{env.name}</p>
+                          <p className="text-xs text-slate-500">
+                            {env.allocated > 0
+                              ? `${env.percentUsed.toFixed(0)}% of allocation used`
+                              : "No allocation"}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-semibold tabular-nums text-slate-900">
+                            {formatCurrency(env.spent)}
+                          </p>
+                          {env.allocated > 0 && (
+                            <p className="text-xs text-slate-500">
+                              of {formatCurrency(env.allocated)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {env.allocated > 0 && (
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              env.remaining < 0 ? "bg-rose-500" : "bg-indigo-500"
+                            )}
+                            style={{
+                              width: `${Math.min(100, env.percentUsed)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="mt-2 flex justify-between text-xs text-slate-500">
+                        <span>Spent {formatCurrency(env.spent)}</span>
+                        {env.allocated > 0 && (
+                          <span
+                            className={cn(
+                              env.remaining < 0 ? "text-rose-600" : "text-emerald-600"
+                            )}
+                          >
+                            {env.remaining < 0 ? "Over by " : "Remaining "}
+                            {formatCurrency(Math.abs(env.remaining))}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
         </>
       )}
 
