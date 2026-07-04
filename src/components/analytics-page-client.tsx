@@ -14,7 +14,8 @@ import {
   SpendingPieChart,
   type ForecastTimelinePoint,
 } from "@/components/charts";
-import { formatCurrency, formatShortDate, cn } from "@/lib/utils";
+import { formatCurrency, formatShortDate, cn, getMonthKey } from "@/lib/utils";
+import { buildTransactionsUrl } from "@/lib/transaction-filter-url";
 import type { AnalyticsData } from "@/lib/analytics-types";
 import {
   BarChart3,
@@ -143,6 +144,21 @@ export function AnalyticsPageClient({
     }
     router.push(`/analytics?accountId=${value}`);
   };
+
+  const goToCategoryTransactions = (categoryId: string, monthKey?: string | null) => {
+    router.push(
+      buildTransactionsUrl({
+        accountId: data.accountId,
+        categoryId,
+        month: monthKey ?? null,
+      })
+    );
+  };
+
+  const currentMonthKey = getMonthKey(new Date());
+
+  const categoryRowClassName =
+    "flex w-full items-center gap-3 rounded-xl py-3 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40";
 
   const { summary } = data;
 
@@ -304,10 +320,15 @@ export function AnalyticsPageClient({
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader title="Top Categories" subtitle="Current month spending" />
+              <CardHeader title="Top Categories" subtitle="Current month spending · click to view transactions" />
               <div className="divide-y divide-slate-100">
                 {data.categoryAnalytics.slice(0, 10).map((cat) => (
-                  <div key={cat.id} className="flex items-center gap-3 py-3">
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => goToCategoryTransactions(cat.id, currentMonthKey)}
+                    className={categoryRowClassName}
+                  >
                     <div
                       className="flex h-9 w-9 items-center justify-center rounded-lg"
                       style={{ backgroundColor: `${cat.color}20` }}
@@ -334,7 +355,7 @@ export function AnalyticsPageClient({
                     <p className="font-semibold tabular-nums text-slate-900">
                       {formatCurrency(cat.currentMonth)}
                     </p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Card>
@@ -420,11 +441,17 @@ export function AnalyticsPageClient({
                 />
                 <SpendingPieChart
                   data={categoryPieData.map((c) => ({ name: c.name, amount: c.amount }))}
+                  onItemClick={(name) => {
+                    const cat = selectedHistoricalMonth.categories.find((c) => c.name === name);
+                    if (cat) {
+                      goToCategoryTransactions(cat.categoryId, selectedHistoricalMonth.monthKey);
+                    }
+                  }}
                 />
               </Card>
 
               <Card>
-                <CardHeader title="Category breakdown" subtitle="All spending for the selected month" />
+                <CardHeader title="Category breakdown" subtitle="Click a category to view its transactions" />
                 <div className="divide-y divide-slate-100">
                   {selectedHistoricalMonth.categories.length === 0 ? (
                     <p className="py-8 text-center text-sm text-slate-500">
@@ -432,7 +459,14 @@ export function AnalyticsPageClient({
                     </p>
                   ) : (
                     selectedHistoricalMonth.categories.map((cat) => (
-                      <div key={cat.categoryId} className="flex items-center gap-3 py-3">
+                      <button
+                        key={cat.categoryId}
+                        type="button"
+                        onClick={() =>
+                          goToCategoryTransactions(cat.categoryId, selectedHistoricalMonth.monthKey)
+                        }
+                        className={categoryRowClassName}
+                      >
                         <div
                           className="flex h-9 w-9 items-center justify-center rounded-lg"
                           style={{ backgroundColor: `${cat.color}20` }}
@@ -452,7 +486,7 @@ export function AnalyticsPageClient({
                         <p className="font-semibold tabular-nums text-slate-900">
                           {formatCurrency(cat.amount)}
                         </p>
-                      </div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -462,7 +496,7 @@ export function AnalyticsPageClient({
             <Card>
               <CardHeader
                 title={`${selectedHistoricalMonth.monthLabel} envelopes`}
-                subtitle="Allocated vs actual spending per envelope"
+                subtitle="Allocated vs actual spending · click to view transactions"
               />
               {!selectedHistoricalMonth.hasEnvelopes ? (
                 <p className="py-8 text-center text-sm text-slate-500">
@@ -476,7 +510,14 @@ export function AnalyticsPageClient({
               ) : (
                 <div className="divide-y divide-slate-100">
                   {selectedHistoricalMonth.envelopes.map((env) => (
-                    <div key={env.categoryId} className="py-4">
+                    <button
+                      key={env.categoryId}
+                      type="button"
+                      onClick={() =>
+                        goToCategoryTransactions(env.categoryId, selectedHistoricalMonth.monthKey)
+                      }
+                      className="block w-full rounded-xl py-4 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                    >
                       <div className="flex items-center gap-3">
                         <div
                           className="flex h-9 w-9 items-center justify-center rounded-lg"
@@ -533,7 +574,7 @@ export function AnalyticsPageClient({
                           </span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
