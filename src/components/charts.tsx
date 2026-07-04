@@ -130,8 +130,10 @@ export function CashFlowChart({
 
 export function SpendingPieChart({
   data,
+  onItemClick,
 }: {
   data: { name: string; amount: number }[];
+  onItemClick?: (name: string) => void;
 }) {
   if (data.length === 0) {
     return (
@@ -178,22 +180,42 @@ export function SpendingPieChart({
       <div className="min-w-0 flex-1">
         <ul className="max-h-[280px] space-y-1 overflow-y-auto pr-1">
           {slices.map((slice) => (
-            <li
-              key={slice.name}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 rounded-lg px-2 py-2 hover:bg-slate-50"
-            >
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: slice.color }}
-                aria-hidden
-              />
-              <span className="truncate text-sm font-medium text-slate-700">{slice.name}</span>
-              <span className="text-sm font-semibold tabular-nums text-slate-900">
-                {formatCurrency(slice.amount)}
-              </span>
-              <span className="w-12 text-right text-xs font-medium tabular-nums text-slate-500">
-                {slice.percent.toFixed(1)}%
-              </span>
+            <li key={slice.name}>
+              {onItemClick ? (
+                <button
+                  type="button"
+                  onClick={() => onItemClick(slice.name)}
+                  className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                >
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: slice.color }}
+                    aria-hidden
+                  />
+                  <span className="truncate text-sm font-medium text-slate-700">{slice.name}</span>
+                  <span className="text-sm font-semibold tabular-nums text-slate-900">
+                    {formatCurrency(slice.amount)}
+                  </span>
+                  <span className="w-12 text-right text-xs font-medium tabular-nums text-slate-500">
+                    {slice.percent.toFixed(1)}%
+                  </span>
+                </button>
+              ) : (
+                <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 rounded-lg px-2 py-2 hover:bg-slate-50">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: slice.color }}
+                    aria-hidden
+                  />
+                  <span className="truncate text-sm font-medium text-slate-700">{slice.name}</span>
+                  <span className="text-sm font-semibold tabular-nums text-slate-900">
+                    {formatCurrency(slice.amount)}
+                  </span>
+                  <span className="w-12 text-right text-xs font-medium tabular-nums text-slate-500">
+                    {slice.percent.toFixed(1)}%
+                  </span>
+                </div>
+              )}
             </li>
           ))}
         </ul>

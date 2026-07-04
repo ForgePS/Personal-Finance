@@ -1,29 +1,37 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/input";
 import { EditableTransactionList, type TransactionListItem } from "@/components/editable-transaction-list";
 import { AddTransactionModal } from "@/components/modals/add-transaction-modal";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Plus, Search, Sparkles, X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { buildTransactionsUrl } from "@/lib/transaction-filter-url";
 import { buildAccountSelectOptions, type AccountOption } from "@/lib/account-utils";
 
 export function TransactionsPageClient({
   initialTransactions,
   accountFilter,
+  categoryFilter,
+  monthFilter,
   accounts,
 }: {
   initialTransactions: TransactionListItem[];
   accountFilter?: { id: string; name: string } | null;
+  categoryFilter?: { id: string; name: string } | null;
+  monthFilter?: { key: string; label: string } | null;
   accounts: AccountOption[];
 }) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "income" | "expense" | "debt">("all");
+  const [filter, setFilter] = useState<"all" | "income" | "expense" | "debt">(
+    categoryFilter ? "expense" : "all"
+  );
   const [autoCatLoading, setAutoCatLoading] = useState(false);
   const selectedAccountId = accountFilter?.id ?? "";
 
@@ -31,6 +39,18 @@ export function TransactionsPageClient({
     () => [{ value: "", label: "All accounts" }, ...buildAccountSelectOptions(accounts)],
     [accounts]
   );
+
+  const filterSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (categoryFilter) parts.push(categoryFilter.name);
+    if (monthFilter) parts.push(monthFilter.label);
+    if (accountFilter) parts.push(accountFilter.name);
+    return parts.join(" · ");
+  }, [accountFilter, categoryFilter, monthFilter]);
+
+  const clearFiltersHref = buildTransactionsUrl({
+    accountId: accountFilter?.id ?? null,
+  });
 
   const filtered = useMemo(() => {
     return initialTransactions.filter((tx) => {
@@ -88,11 +108,13 @@ export function TransactionsPageClient({
   };
 
   const handleAccountChange = (accountId: string) => {
-    if (!accountId) {
-      router.push("/transactions");
-      return;
-    }
-    router.push(`/transactions?accountId=${accountId}`);
+    router.push(
+      buildTransactionsUrl({
+        accountId: accountId || null,
+        categoryId: categoryFilter?.id ?? null,
+        month: monthFilter?.key ?? null,
+      })
+    );
   };
 
   return (
@@ -102,7 +124,7 @@ export function TransactionsPageClient({
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Transactions</h1>
           <p className="text-sm text-slate-500">
             {filtered.length} transactions
-            {accountFilter ? ` · ${accountFilter.name}` : ""}
+            {filterSummary ? ` · ${filterSummary}` : accountFilter ? ` · ${accountFilter.name}` : ""}
           </p>
         </div>
         <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto">
@@ -110,6 +132,29 @@ export function TransactionsPageClient({
           Add Transaction
         </Button>
       </div>
+
+      {(categoryFilter || monthFilter) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-slate-500">Filtered by:</span>
+          {categoryFilter && (
+            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+              {categoryFilter.name}
+            </span>
+          )}
+          {monthFilter && (
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+              {monthFilter.label}
+            </span>
+          )}
+          <Link
+            href={clearFiltersHref}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear filters
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
