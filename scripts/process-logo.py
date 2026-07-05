@@ -19,15 +19,55 @@ SOURCE = PUBLIC / "logo-source.png"
 THRESHOLD = 235
 
 
+def is_background_pixel(r: int, g: int, b: int, a: int) -> bool:
+    if a < 10:
+        return True
+    return r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD
+
+
 def strip_background(img: Image.Image) -> Image.Image:
+    """Remove the outer white matte without touching isolated light highlights."""
+    from collections import deque
+
     img = img.convert("RGBA")
     pixels = img.load()
     width, height = img.size
+    visited = bytearray(width * height)
+    queue: deque[tuple[int, int]] = deque()
+
+    def index(x: int, y: int) -> int:
+        return y * width + x
+
+    def enqueue_if_background(x: int, y: int) -> None:
+        idx = index(x, y)
+        if visited[idx]:
+            return
+        r, g, b, a = pixels[x, y]
+        if not is_background_pixel(r, g, b, a):
+            return
+        visited[idx] = 1
+        queue.append((x, y))
+
+    for x in range(width):
+        enqueue_if_background(x, 0)
+        enqueue_if_background(x, height - 1)
     for y in range(height):
-        for x in range(width):
-            r, g, b, a = pixels[x, y]
-            if r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD:
-                pixels[x, y] = (r, g, b, 0)
+        enqueue_if_background(0, y)
+        enqueue_if_background(width - 1, y)
+
+    while queue:
+        x, y = queue.popleft()
+        r, g, b, _ = pixels[x, y]
+        pixels[x, y] = (r, g, b, 0)
+        if x > 0:
+            enqueue_if_background(x - 1, y)
+        if x + 1 < width:
+            enqueue_if_background(x + 1, y)
+        if y > 0:
+            enqueue_if_background(x, y - 1)
+        if y + 1 < height:
+            enqueue_if_background(x, y + 1)
+
     return img
 
 
@@ -42,7 +82,7 @@ def content_bbox(img: Image.Image) -> tuple[int, int, int, int]:
             r, g, b, a = pixels[x, y]
             if a < 10:
                 continue
-            if r >= THRESHOLD and g >= THRESHOLD and b >= THRESHOLD:
+            if is_background_pixel(r, g, b, a):
                 continue
             found = True
             min_x = min(min_x, x)
