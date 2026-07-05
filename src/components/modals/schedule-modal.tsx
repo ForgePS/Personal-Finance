@@ -38,6 +38,16 @@ export interface ScheduleRecord {
   priority?: number;
 }
 
+export interface SchedulePrefill {
+  name?: string;
+  amount?: string | number;
+  categoryId?: string;
+  accountId?: string;
+  startDate?: string;
+  notes?: string;
+  frequency?: ScheduleFrequency;
+}
+
 const INCOME_COLORS = ["#22c55e", "#14b8a6", "#10b981", "#06b6d4", "#3b82f6"];
 const EXPENSE_COLORS = ["#f97316", "#ef4444", "#ec4899", "#f59e0b", "#8b5cf6"];
 
@@ -67,12 +77,14 @@ export function ScheduleModal({
   type,
   schedule,
   defaultStartDate,
+  prefill,
 }: {
   isOpen: boolean;
   onClose: () => void;
   type: "income" | "expense";
   schedule?: ScheduleRecord | null;
   defaultStartDate?: string | null;
+  prefill?: SchedulePrefill | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -85,6 +97,10 @@ export function ScheduleModal({
     ? type === "income"
       ? "Edit Pay Schedule"
       : "Edit Scheduled Expense"
+    : prefill
+      ? type === "income"
+        ? "Set Up Recurring Income"
+        : "Set Up Recurring Expense"
     : type === "income"
       ? "Add Pay Schedule"
       : "Add Scheduled Expense";
@@ -116,22 +132,36 @@ export function ScheduleModal({
         isActive: schedule.isActive,
         priority: String(schedule.priority ?? 50),
       });
-    } else {
+    } else if (prefill) {
       const base = defaultForm(type);
-      if (defaultStartDate) {
-        const date = new Date(`${defaultStartDate}T12:00:00`);
-        setForm({
-          ...base,
-          startDate: defaultStartDate,
-          frequency: "ONCE",
-          dayOfWeek: String(date.getDay()),
-          dayOfMonth: String(date.getDate()),
-        });
-      } else {
-        setForm(base);
-      }
+      const startDate = prefill.startDate ?? base.startDate;
+      const date = new Date(`${startDate}T12:00:00`);
+      setForm({
+        ...base,
+        name: prefill.name ?? "",
+        amount: prefill.amount != null ? String(prefill.amount) : "",
+        categoryId: prefill.categoryId ?? "",
+        accountId: prefill.accountId ?? "",
+        startDate,
+        frequency: prefill.frequency ?? "MONTHLY",
+        dayOfWeek: String(date.getDay()),
+        dayOfMonth: String(date.getDate()),
+        notes: prefill.notes ?? "",
+      });
+    } else if (defaultStartDate) {
+      const base = defaultForm(type);
+      const date = new Date(`${defaultStartDate}T12:00:00`);
+      setForm({
+        ...base,
+        startDate: defaultStartDate,
+        frequency: "ONCE",
+        dayOfWeek: String(date.getDay()),
+        dayOfMonth: String(date.getDate()),
+      });
+    } else {
+      setForm(defaultForm(type));
     }
-  }, [isOpen, schedule, type, defaultStartDate]);
+  }, [isOpen, schedule, type, defaultStartDate, prefill]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,7 +370,15 @@ export function ScheduleModal({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : schedule ? "Save Changes" : "Add Schedule"}
+              {loading
+                ? "Saving..."
+                : schedule
+                  ? "Save Changes"
+                  : prefill
+                    ? type === "income"
+                      ? "Create Recurring Income"
+                      : "Create Recurring Expense"
+                    : "Add Schedule"}
             </Button>
           </div>
         </div>
