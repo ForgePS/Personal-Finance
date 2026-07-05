@@ -23,9 +23,11 @@ export default function Error({
   const isProd = process.env.NODE_ENV === "production";
   const hint = needsSetup
     ? "Your database may need updating. Run npm run db:setup, then refresh."
-    : isProd
-      ? "Check Firebase App Hosting runtime logs. Ensure Firestore is enabled for personal-finance-ed108."
-      : error.message || "An unexpected error occurred. Try restarting the dev server after running npm run db:setup.";
+    : error.message.includes("Unauthorized") || error.message.includes("NEXT_REDIRECT")
+      ? "Your session expired. Please sign in again."
+      : isProd
+        ? "Check Firebase App Hosting runtime logs. Ensure Firestore is enabled for personal-finance-ed108."
+        : error.message || "An unexpected error occurred. Try restarting the dev server after running npm run db:setup.";
 
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">

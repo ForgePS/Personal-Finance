@@ -130,6 +130,12 @@ export function Sidebar() {
             Use envelopes to separate your money into expense categories each month.
           </p>
         </div>
+        <Link
+          href="/privacy"
+          className="block text-center text-xs text-indigo-300/80 hover:text-white"
+        >
+          Privacy Policy
+        </Link>
       </div>
     </>
   );

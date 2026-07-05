@@ -7,8 +7,9 @@ import { usePathname } from "next/navigation";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
+  const isPublicLegalPage = pathname === "/privacy";
 
-  if (isLoginPage) {
+  if (isLoginPage || isPublicLegalPage) {
     return <>{children}</>;
   }
 

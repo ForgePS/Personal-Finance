@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getAuth as getAdminAuth } from "firebase-admin/auth";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
@@ -133,7 +134,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 export async function requireAuthContext(): Promise<AuthContext> {
   const auth = await getAuthContext();
   if (!auth) {
-    throw new Error("Unauthorized");
+    redirect("/login");
   }
   return auth;
 }

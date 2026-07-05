@@ -2,7 +2,7 @@
   "apphosting": [
     {
       "backendId": "personal-finance",
-      "rootDir": "/",
+      "rootDir": ".",
       "ignore": [
         "firebase.json",
         "**/.*",

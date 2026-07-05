@@ -167,6 +167,14 @@ export function LoginForm() {
             </p>
           )
         )}
+
+        <p className="mt-8 text-center text-xs text-slate-500">
+          By signing in, you agree to our{" "}
+          <a href="/privacy" className="text-indigo-400 hover:text-indigo-300 underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
